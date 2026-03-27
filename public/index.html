@@ -379,6 +379,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
     <div class="nav-label">Actions</div>
     <a class="nav-item" href="#" onclick="generateAllCards();return false;"><span class="nav-icon">◈</span>Generate All Cards</a>
     <a class="nav-item" href="#" onclick="clearAll();return false;"><span class="nav-icon">⊘</span>Clear Database</a>
+    <a class="nav-item" href="#" onclick="downloadAllCards();return false;"><span class="nav-icon">⇩</span>Download All Cards</a>
   </nav>
   <div class="sidebar-footer">
     <span class="version">CardForge v1.0</span>
@@ -496,6 +497,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
         </div>
         <button class="btn btn-green btn-sm" onclick="generateAllCards()">◈ Generate All</button>
         <button class="btn btn-red btn-sm" onclick="clearAll()">⊘ Clear All</button>
+        <button class="btn btn-outline btn-sm" onclick="downloadAllCards()">⇩ Download All</button>
       </div>
     </div>
   </div>
@@ -562,6 +564,14 @@ function filterStudents() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   renderStudents(allStudents.filter(s => s.name.toLowerCase().includes(q)||s.schoolName.toLowerCase().includes(q)));
 }
+function downloadCard(id) {
+  window.location.href = `/api/download-card/${id}`;
+}
+
+function downloadAllCards() {
+  if (!allStudents.length) return alert('No students found.');
+  window.location.href = '/api/download-all-cards';
+}
 
 function renderStudents(students) {
   const c = document.getElementById('studentsContainer');
@@ -575,6 +585,7 @@ function renderStudents(students) {
       <td><div class="action-btns">
         <button class="btn btn-ghost btn-sm" onclick="generateCard('${s._id}','${s.name}')">Generate</button>
         ${s.cardGenerated?`<button class="btn btn-outline btn-sm" onclick="viewCard('${s._id}','${s.name}','${s.cardPath}')">View</button>`:''}
+        <button class="btn btn-outline btn-sm" onclick="downloadCard('${s._id}')">Download</button>
       </div></td>
     </tr>`).join('')}
   </tbody></table>`;

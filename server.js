@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
 const sharp = require("sharp");
+const archiver = require('archiver');
 
 const app = express();
 app.use(express.json());
@@ -25,8 +26,8 @@ const StudentSchema = new mongoose.Schema({
   schoolName: { type: String, required: true },
   rollNo: String,
   class: String,
-  email: String,
-  phone: String,
+  email: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
+  phone: { type: String, trim: true, unique: true, sparse: true },
   address: String,
   uploadedAt: { type: Date, default: Date.now },
   cardGenerated: { type: Boolean, default: false },
@@ -47,6 +48,15 @@ const upload = multer({ storage });
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 });
 
+function normalizeEmail(v = '') {
+  return String(v).trim().toLowerCase();
+}
+
+function normalizePhone(v = '') {
+  // keep digits only; adjust if you want country-code format
+  return String(v).replace(/\D/g, '');
+}
+
 // POST: Upload Excel
 app.post('/api/upload', upload.single('excel'), async (req, res) => {
   try {
@@ -58,29 +68,79 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
 
     if (!data.length) return res.status(400).json({ error: 'Excel file is empty' });
 
-    // Normalize column names (case-insensitive)
     const normalized = data.map(row => {
       const obj = {};
       Object.keys(row).forEach(k => { obj[k.toLowerCase().trim()] = row[k]; });
+
+      const email = normalizeEmail(obj['email'] || obj['email id'] || '');
+      const phone = normalizePhone(obj['phone'] || obj['mobile'] || obj['contact'] || '');
+
       return {
-        name: obj['name'] || obj['student name'] || obj['studentname'] || '',
-        schoolName: obj['school'] || obj['school name'] || obj['schoolname'] || obj['institution'] || '',
+        name: (obj['name'] || obj['student name'] || obj['studentname'] || '').toString().trim(),
+        schoolName: (obj['school'] || obj['school name'] || obj['schoolname'] || obj['institution'] || '').toString().trim(),
         rollNo: obj['roll no'] || obj['rollno'] || obj['roll'] || obj['roll number'] || '',
         class: obj['class'] || obj['grade'] || obj['std'] || '',
-        email: obj['email'] || obj['email id'] || '',
-        phone: obj['phone'] || obj['mobile'] || obj['contact'] || '',
+        email: email || undefined,
+        phone: phone || undefined,
         address: obj['address'] || obj['city'] || ''
       };
     }).filter(s => s.name && s.schoolName);
 
-    const inserted = await Student.insertMany(normalized);
+    // 1) Remove duplicates inside uploaded file itself
+    const seenEmails = new Set();
+    const seenPhones = new Set();
+    const uniqueFromFile = [];
+    const duplicates = [];
+
+    for (const s of normalized) {
+      const e = s.email || '';
+      const p = s.phone || '';
+
+      if ((e && seenEmails.has(e)) || (p && seenPhones.has(p))) {
+        duplicates.push({ reason: 'duplicate_in_file', email: e || null, phone: p || null, name: s.name });
+        continue;
+      }
+      if (e) seenEmails.add(e);
+      if (p) seenPhones.add(p);
+      uniqueFromFile.push(s);
+    }
+
+    // 2) Remove records already present in DB by email/phone
+    const emails = [...new Set(uniqueFromFile.map(s => s.email).filter(Boolean))];
+    const phones = [...new Set(uniqueFromFile.map(s => s.phone).filter(Boolean))];
+
+    const or = [];
+    if (emails.length) or.push({ email: { $in: emails } });
+    if (phones.length) or.push({ phone: { $in: phones } });
+
+    const existing = or.length ? await Student.find({ $or: or }, { email: 1, phone: 1 }) : [];
+    const existingEmails = new Set(existing.map(x => x.email).filter(Boolean));
+    const existingPhones = new Set(existing.map(x => x.phone).filter(Boolean));
+
+    const finalInsert = [];
+    for (const s of uniqueFromFile) {
+      if ((s.email && existingEmails.has(s.email)) || (s.phone && existingPhones.has(s.phone))) {
+        duplicates.push({
+          reason: 'already_in_database',
+          email: s.email || null,
+          phone: s.phone || null,
+          name: s.name
+        });
+        continue;
+      }
+      finalInsert.push(s);
+    }
+
+    const inserted = finalInsert.length ? await Student.insertMany(finalInsert, { ordered: false }) : [];
+
     fs.unlinkSync(req.file.path);
 
     res.json({
       success: true,
       message: `${inserted.length} students uploaded successfully`,
-      count: inserted.length,
-      students: inserted
+      insertedCount: inserted.length,
+      duplicateCount: duplicates.length,
+      duplicates
     });
   } catch (err) {
     console.error(err);
@@ -118,84 +178,87 @@ function escapeSvgText(value = '') {
     .replace(/'/g, '&#39;');
 }
 
+function sanitizeFileName(value = '') {
+  return String(value).replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
+}
+
+function getTemplatePath() {
+  const imageFiles = fs.readdirSync('images').filter(f =>
+    ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase())
+  );
+  if (!imageFiles.length) throw new Error('No template image found in /images folder');
+  return path.join('images', imageFiles[0]);
+}
+
+async function generateCardForStudent(student) {
+  const templatePath = getTemplatePath();
+  const templateSharp = sharp(templatePath);
+  const meta = await templateSharp.metadata();
+
+  const width = meta.width || 1200;
+  const height = meta.height || 800;
+  const cx = Math.floor(width / 2);
+  const cy = Math.floor(height / 2);
+
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+  const qrData = `${baseUrl}/student.html?id=${student._id}`;
+
+  const qrSize = Math.floor(Math.min(width, height) * 0.22);
+  const qrBuffer = await QRCode.toBuffer(qrData, {
+    width: qrSize,
+    margin: 1,
+    color: { dark: '#000000', light: '#ffffff' }
+  });
+
+  const nameFontSize = Math.floor(width * 0.055);
+  const schoolFontSize = Math.floor(width * 0.035);
+  const labelFontSize = Math.floor(width * 0.022);
+
+  const safeName = escapeSvgText((student.name || '').toUpperCase());
+  const safeSchool = escapeSvgText(student.schoolName || '');
+
+  const textSvg = Buffer.from(`
+    <svg width="${width}" height="${height}">
+      <style>
+        .name { fill:#1a1a2e; font-size:${nameFontSize}px; font-weight:700; font-family:Arial, sans-serif; }
+        .school { fill:#2d4a7a; font-size:${schoolFontSize}px; font-weight:500; font-family:Arial, sans-serif; }
+        .label { fill:#555555; font-size:${labelFontSize}px; font-weight:400; font-family:Arial, sans-serif; }
+      </style>
+      <text x="${cx}" y="${Math.round(cy - qrSize * 0.75)}" text-anchor="middle" dominant-baseline="middle" class="name">${safeName}</text>
+      <text x="${cx}" y="${Math.round(cy - qrSize * 0.4)}" text-anchor="middle" dominant-baseline="middle" class="school">${safeSchool}</text>
+      <text x="${cx}" y="${Math.round(cy + qrSize * 0.05 + qrSize + 20)}" text-anchor="middle" dominant-baseline="middle" class="label">Scan for Details</text>
+    </svg>
+  `);
+
+  const qrX = Math.round(cx - qrSize / 2);
+  const qrY = Math.round(cy + qrSize * 0.05);
+
+  const filename = `card_${student._id}.png`;
+  const outputPath = path.join('generated', filename);
+
+  await sharp(templatePath)
+    .composite([
+      { input: textSvg, top: 0, left: 0 },
+      { input: qrBuffer, top: qrY, left: qrX }
+    ])
+    .png()
+    .toFile(outputPath);
+
+  await Student.findByIdAndUpdate(student._id, {
+    cardGenerated: true,
+    cardPath: filename
+  });
+
+  return filename;
+}
+
 // POST: Generate Card for a student
 app.post('/api/generate-card/:id', async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    // Find template image
-    const imageFiles = fs.readdirSync('images').filter(f =>
-      ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase())
-    );
-    if (!imageFiles.length) {
-      return res.status(400).json({ error: 'No template image found in /images folder' });
-    }
-
-    const templatePath = path.join('images', imageFiles[0]);
-    const templateSharp = sharp(templatePath);
-    const meta = await templateSharp.metadata();
-
-    const width = meta.width || 1200;
-    const height = meta.height || 800;
-    const cx = Math.floor(width / 2);
-    const cy = Math.floor(height / 2);
-
-    // Generate QR
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const qrData = `${baseUrl}/student.html?id=${student._id}`;
-
-    const qrSize = Math.floor(Math.min(width, height) * 0.22);
-    const qrBuffer = await QRCode.toBuffer(qrData, {
-      width: qrSize,
-      margin: 1,
-      color: { dark: '#000000', light: '#ffffff' }
-    });
-
-    // Text sizes
-    const nameFontSize = Math.floor(width * 0.055);
-    const schoolFontSize = Math.floor(width * 0.035);
-    const labelFontSize = Math.floor(width * 0.022);
-
-    const safeName = escapeSvgText((student.name || '').toUpperCase());
-    const safeSchool = escapeSvgText(student.schoolName || '');
-
-    // SVG text overlay (centered)
-    const textSvg = Buffer.from(`
-      <svg width="${width}" height="${height}">
-        <style>
-          .name { fill:#1a1a2e; font-size:${nameFontSize}px; font-weight:700; font-family:Arial, sans-serif; }
-          .school { fill:#2d4a7a; font-size:${schoolFontSize}px; font-weight:500; font-family:Arial, sans-serif; }
-          .label { fill:#555555; font-size:${labelFontSize}px; font-weight:400; font-family:Arial, sans-serif; }
-        </style>
-
-        <text x="${cx}" y="${Math.round(cy - qrSize * 0.75)}" text-anchor="middle" dominant-baseline="middle" class="name">${safeName}</text>
-        <text x="${cx}" y="${Math.round(cy - qrSize * 0.4)}" text-anchor="middle" dominant-baseline="middle" class="school">${safeSchool}</text>
-        <text x="${cx}" y="${Math.round(cy + qrSize * 0.05 + qrSize + 20)}" text-anchor="middle" dominant-baseline="middle" class="label">Scan for Details</text>
-      </svg>
-    `);
-
-    // QR position (centered)
-    const qrX = Math.round(cx - qrSize / 2);
-    const qrY = Math.round(cy + qrSize * 0.05);
-
-    // Save
-    const filename = `card_${student._id}.png`;
-    const outputPath = path.join('generated', filename);
-
-    await sharp(templatePath)
-      .composite([
-        { input: textSvg, top: 0, left: 0 },
-        { input: qrBuffer, top: qrY, left: qrX }
-      ])
-      .png()
-      .toFile(outputPath);
-
-    await Student.findByIdAndUpdate(student._id, {
-      cardGenerated: true,
-      cardPath: filename
-    });
-
+    const filename = await generateCardForStudent(student);
     res.json({ success: true, cardPath: `/generated/${filename}` });
   } catch (err) {
     console.error(err);
@@ -208,17 +271,67 @@ app.post('/api/generate-all', async (req, res) => {
   try {
     const students = await Student.find();
     const results = [];
+
     for (const student of students) {
       try {
-        const r = await fetch(`http://localhost:${process.env.PORT || 3000}/api/generate-card/${student._id}`, { method: 'POST' });
-        results.push({ id: student._id, success: r.ok });
+        await generateCardForStudent(student);
+        results.push({ id: student._id, success: true });
       } catch (e) {
         results.push({ id: student._id, success: false });
       }
     }
+
     res.json({ success: true, results });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET: Download single student card
+app.get('/api/download-card/:id', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    let filename = student.cardPath;
+    const hasFile = filename && fs.existsSync(path.join('generated', filename));
+    if (!hasFile) filename = await generateCardForStudent(student);
+
+    const filePath = path.join('generated', filename);
+    const pretty = sanitizeFileName(student.name || 'student');
+    return res.download(filePath, `${pretty}_card.png`);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// GET: Download all cards as ZIP
+app.get('/api/download-all-cards', async (req, res) => {
+  try {
+    const students = await Student.find();
+    if (!students.length) return res.status(404).json({ error: 'No students found' });
+
+    for (const student of students) {
+      const fileExists = student.cardPath && fs.existsSync(path.join('generated', student.cardPath));
+      if (!fileExists) await generateCardForStudent(student);
+    }
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename="all-student-cards.zip"');
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.on('error', err => { throw err; });
+    archive.pipe(res);
+
+    for (const student of students) {
+      const absPath = path.join('generated', student.cardPath);
+      const pretty = sanitizeFileName(student.name || 'student');
+      archive.file(absPath, { name: `${pretty}_${student._id}.png` });
+    }
+
+    await archive.finalize();
+  } catch (err) {
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
