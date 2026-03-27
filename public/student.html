@@ -4,217 +4,357 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Student Details</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0e1a; --surface: #111827; --card: #162032;
-    --border: #1e3a5f; --accent: #3b82f6; --accent2: #06b6d4;
-    --text: #e2e8f0; --muted: #64748b; --success: #10b981;
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg); color: var(--text);
-    min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
-    padding: 20px;
-  }
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image:
-      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
-    background-size: 50px 50px;
-    pointer-events: none;
-  }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 36px;
-    max-width: 440px;
-    width: 100%;
-    position: relative;
-    z-index: 1;
-    animation: fadeUp 0.5s ease;
-  }
-  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+:root {
+  --purple: #3B0B8F;
+  --blue: #1E3A8A;
+  --yellow: #FBBF24;
+  --yellow-dark: #F59E0B;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-600: #4B5563;
+  --gray-700: #374151;
+  --gray-900: #111827;
+}
 
-  .top-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(16,185,129,0.1);
-    border: 1px solid rgba(16,185,129,0.3);
-    color: var(--success);
-    border-radius: 50px;
-    padding: 5px 14px;
-    font-size: 0.78rem;
-    font-weight: 500;
-    margin-bottom: 24px;
-  }
-  .dot { width:7px; height:7px; border-radius:50%; background:var(--success); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-  .avatar-ring {
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Syne', sans-serif;
-    font-size: 2rem; font-weight: 800;
-    color: #fff;
-    margin: 0 auto 20px;
-    box-shadow: 0 0 0 6px rgba(59,130,246,0.15), 0 0 0 12px rgba(59,130,246,0.07);
-  }
+body {
+  font-family: 'Geist', system-ui, sans-serif;
+  background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  h1 {
-    font-family: 'Syne', sans-serif;
-    font-size: 1.6rem; font-weight: 800;
-    text-align: center;
-    background: linear-gradient(90deg, #fff, var(--accent2));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 4px;
-  }
+.container {
+  max-width: 500px;
+  width: 100%;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
 
-  .school {
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--muted);
-    margin-bottom: 28px;
-  }
+.header {
+  background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+  padding: 40px 30px;
+  text-align: center;
+  position: relative;
+}
 
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 20px 0;
-  }
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, var(--yellow) 0%, var(--yellow-dark) 100%);
+}
 
-  .details-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+.logo {
+  font-family: 'Georgia', serif;
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 5px;
+}
 
-  .detail {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 14px;
-  }
-  .detail.full { grid-column: 1/-1; }
+.tagline {
+  font-family: 'Georgia', serif;
+  font-size: 14px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 20px;
+}
 
-  .detail-label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-  }
+.event-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--yellow);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
 
-  .detail-value {
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
+.body {
+  padding: 35px 30px 40px;
+}
 
-  .footer {
-    text-align: center;
-    margin-top: 24px;
-    font-size: 0.78rem;
-    color: var(--muted);
-  }
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--gray-600);
+}
 
-  .error-state {
-    text-align: center;
-    padding: 20px 0;
-  }
-  .error-icon { font-size: 3rem; margin-bottom: 16px; }
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error {
+  text-align: center;
+  padding: 40px 20px;
+  color: #DC2626;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--gray-600);
+  margin-bottom: 15px;
+}
+
+.student-name {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--gray-900);
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.school-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray-700);
+  margin-bottom: 30px;
+}
+
+.divider {
+  height: 2px;
+  background: linear-gradient(90deg, var(--yellow), var(--yellow-dark));
+  margin: 25px 0;
+}
+
+.details-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  background: var(--gray-50);
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+}
+
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.detail-content {
+  flex: 1;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gray-900);
+  word-break: break-word;
+}
+
+.footer {
+  padding: 20px 30px;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-200);
+  text-align: center;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  color: white;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.verified-icon {
+  font-size: 14px;
+}
 </style>
 </head>
 <body>
-<div class="card" id="content">
-  <div style="text-align:center;padding:30px">
-    <div style="font-size:2rem;margin-bottom:12px">⏳</div>
-    <p style="color:var(--muted)">Loading student details...</p>
+
+<div class="container">
+  <div class="header">
+    <div class="logo">Graphic Era</div>
+    <div class="tagline">Transforming dreams into reality</div>
+    <div class="event-title">Mega Career<br>Counselling</div>
+  </div>
+
+  <div class="body" id="content">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>Loading participant details...</div>
+    </div>
   </div>
 </div>
 
 <script>
-  async function load() {
-    // Get ID from URL ?id=xxx or path /student/xxx
-    const params = new URLSearchParams(window.location.search);
-    let id = params.get('id');
+const params = new URLSearchParams(window.location.search);
+const studentId = params.get('id');
 
-    // Also try from QR data embedded in page hash
-    if (!id && window.location.hash) {
-      try {
-        const data = JSON.parse(decodeURIComponent(window.location.hash.slice(1)));
-        renderFromQR(data);
-        return;
-      } catch(e) {}
-    }
+if (!studentId) {
+  showError('No student ID provided');
+} else {
+  loadStudent(studentId);
+}
 
-    if (!id) {
-      // Try to parse from path
-      const match = window.location.pathname.match(/\/student\/([a-f0-9]+)/i);
-      if (match) id = match[1];
-    }
-
-    if (!id) {
-      renderError('No student ID provided');
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/student/${id}`);
-      if (!res.ok) throw new Error('Student not found');
-      const data = await res.json();
-      renderStudent(data);
-    } catch (err) {
-      renderError(err.message);
-    }
+async function loadStudent(id) {
+  try {
+    const res = await fetch(`/api/student/${id}`);
+    if (!res.ok) throw new Error('Student not found');
+    const student = await res.json();
+    renderStudent(student);
+  } catch (err) {
+    showError(err.message || 'Failed to load student details');
   }
+}
 
-  function renderFromQR(data) {
-    renderStudent({
-      name: data.name,
-      schoolName: data.school,
-      rollNo: data.roll,
-      class: data.class,
-      email: data.email,
-      phone: data.phone
+function renderStudent(student) {
+  const details = [];
+
+  if (student.rollNo) {
+    details.push({
+      icon: '🎫',
+      label: 'Roll Number',
+      value: student.rollNo
     });
   }
 
-  function renderStudent(s) {
-    document.getElementById('content').innerHTML = `
-      <div class="top-badge"><div class="dot"></div> Verified Student</div>
-      <div class="avatar-ring">${s.name.charAt(0).toUpperCase()}</div>
-      <h1>${s.name}</h1>
-      <div class="school">🏫 ${s.schoolName}</div>
+  if (student.class) {
+    details.push({
+      icon: '📚',
+      label: 'Class',
+      value: student.class
+    });
+  }
+
+  if (student.email) {
+    details.push({
+      icon: '✉️',
+      label: 'Email',
+      value: student.email
+    });
+  }
+
+  if (student.phone) {
+    details.push({
+      icon: '📱',
+      label: 'Phone',
+      value: student.phone
+    });
+  }
+
+  if (student.address) {
+    details.push({
+      icon: '📍',
+      label: 'Address',
+      value: student.address
+    });
+  }
+
+  details.push({
+    icon: '🆔',
+    label: 'Student ID',
+    value: student._id
+  });
+
+  document.getElementById('content').innerHTML = `
+    <div class="section-title">Participant Details</div>
+    <div class="student-name">${escapeHtml(student.name)}</div>
+    <div class="school-name">${escapeHtml(student.schoolName)}</div>
+    
+    ${details.length > 0 ? `
       <div class="divider"></div>
       <div class="details-grid">
-        ${s.rollNo ? `<div class="detail"><div class="detail-label">Roll Number</div><div class="detail-value">${s.rollNo}</div></div>` : ''}
-        ${s.class ? `<div class="detail"><div class="detail-label">Class / Grade</div><div class="detail-value">${s.class}</div></div>` : ''}
-        ${s.email ? `<div class="detail full"><div class="detail-label">Email</div><div class="detail-value">${s.email}</div></div>` : ''}
-        ${s.phone ? `<div class="detail"><div class="detail-label">Phone</div><div class="detail-value">${s.phone}</div></div>` : ''}
-        ${s.address ? `<div class="detail ${s.phone ? '' : 'full'}"><div class="detail-label">Address</div><div class="detail-value">${s.address}</div></div>` : ''}
+        ${details.map(d => `
+          <div class="detail-item">
+            <div class="detail-icon">${d.icon}</div>
+            <div class="detail-content">
+              <div class="detail-label">${d.label}</div>
+              <div class="detail-value">${escapeHtml(d.value)}</div>
+            </div>
+          </div>
+        `).join('')}
       </div>
-      <div class="footer">Scanned via QR Code • Student ID System</div>
-    `;
-  }
+    ` : ''}
+  `;
 
-  function renderError(msg) {
-    document.getElementById('content').innerHTML = `
-      <div class="error-state">
-        <div class="error-icon">❌</div>
-        <h2 style="font-family:'Syne',sans-serif;margin-bottom:8px">Not Found</h2>
-        <p style="color:var(--muted);font-size:0.88rem">${msg}</p>
-      </div>
-    `;
-  }
+  // Add footer with verified badge
+  const container = document.querySelector('.container');
+  const footer = document.createElement('div');
+  footer.className = 'footer';
+  footer.innerHTML = `
+    <div class="badge">
+      <span class="verified-icon">✓</span>
+      <span>Verified Participant</span>
+    </div>
+  `;
+  container.appendChild(footer);
+}
 
-  load();
+function showError(message) {
+  document.getElementById('content').innerHTML = `
+    <div class="error">
+      <div class="error-icon">⚠️</div>
+      <div style="font-size:18px;font-weight:600;margin-bottom:8px">Error</div>
+      <div style="font-size:14px">${escapeHtml(message)}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 </script>
+
 </body>
 </html>

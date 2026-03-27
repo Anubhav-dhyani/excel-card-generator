@@ -53,7 +53,6 @@ function normalizeEmail(v = '') {
 }
 
 function normalizePhone(v = '') {
-  // keep digits only; adjust if you want country-code format
   return String(v).replace(/\D/g, '');
 }
 
@@ -86,7 +85,7 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
       };
     }).filter(s => s.name && s.schoolName);
 
-    // 1) Remove duplicates inside uploaded file itself
+    // Remove duplicates inside uploaded file
     const seenEmails = new Set();
     const seenPhones = new Set();
     const uniqueFromFile = [];
@@ -105,7 +104,7 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
       uniqueFromFile.push(s);
     }
 
-    // 2) Remove records already present in DB by email/phone
+    // Remove records already present in DB
     const emails = [...new Set(uniqueFromFile.map(s => s.email).filter(Boolean))];
     const phones = [...new Set(uniqueFromFile.map(s => s.phone).filter(Boolean))];
 
@@ -182,67 +181,152 @@ function sanitizeFileName(value = '') {
   return String(value).replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
 }
 
-function getTemplatePath() {
-  const imageFiles = fs.readdirSync('images').filter(f =>
-    ['.jpg', '.jpeg', '.png'].includes(path.extname(f).toLowerCase())
-  );
-  if (!imageFiles.length) throw new Error('No template image found in /images folder');
-  return path.join('images', imageFiles[0]);
-}
-
 async function generateCardForStudent(student) {
-  const templatePath = getTemplatePath();
-  const templateSharp = sharp(templatePath);
-  const meta = await templateSharp.metadata();
-
-  const width = meta.width || 1200;
-  const height = meta.height || 800;
-  const cx = Math.floor(width / 2);
-  const cy = Math.floor(height / 2);
+  // 4x6 inch card at 300 DPI
+  const width = 1200;  // 4 inches * 300 DPI
+  const height = 1800; // 6 inches * 300 DPI
 
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
   const qrData = `${baseUrl}/student.html?id=${student._id}`;
 
-  const qrSize = Math.floor(Math.min(width, height) * 0.22);
+  // Generate QR Code
+  const qrSize = 280;
   const qrBuffer = await QRCode.toBuffer(qrData, {
     width: qrSize,
     margin: 1,
-    color: { dark: '#000000', light: '#ffffff' }
+    color: { dark: '#1F2937', light: '#FFFFFF' }
   });
 
-  const nameFontSize = Math.floor(width * 0.055);
-  const schoolFontSize = Math.floor(width * 0.035);
-  const labelFontSize = Math.floor(width * 0.022);
+  // Escape student data for SVG
+  const name = escapeSvgText((student.name || '').toUpperCase());
+  const school = escapeSvgText(student.schoolName || '');
+  const rollNo = escapeSvgText(student.rollNo || '');
+  const className = escapeSvgText(student.class || '');
+  const studentId = escapeSvgText(student._id.toString().substring(0, 12).toUpperCase());
 
-  const safeName = escapeSvgText((student.name || '').toUpperCase());
-  const safeSchool = escapeSvgText(student.schoolName || '');
+  // Create professional card design
+ const cardSvg = Buffer.from(`
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#FBBF24;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:1" />
+        </linearGradient>
+        <filter id="shadow">
+          <feDropShadow dx="0" dy="4" stdDeviation="10" flood-opacity="0.12"/>
+        </filter>
+      </defs>
 
-  const textSvg = Buffer.from(`
-    <svg width="${width}" height="${height}">
-      <style>
-        .name { fill:#1a1a2e; font-size:${nameFontSize}px; font-weight:700; font-family:Arial, sans-serif; }
-        .school { fill:#2d4a7a; font-size:${schoolFontSize}px; font-weight:500; font-family:Arial, sans-serif; }
-        .label { fill:#555555; font-size:${labelFontSize}px; font-weight:400; font-family:Arial, sans-serif; }
-      </style>
-      <text x="${cx}" y="${Math.round(cy - qrSize * 0.75)}" text-anchor="middle" dominant-baseline="middle" class="name">${safeName}</text>
-      <text x="${cx}" y="${Math.round(cy - qrSize * 0.4)}" text-anchor="middle" dominant-baseline="middle" class="school">${safeSchool}</text>
-      <text x="${cx}" y="${Math.round(cy + qrSize * 0.05 + qrSize + 20)}" text-anchor="middle" dominant-baseline="middle" class="label">Scan for Details</text>
+      <!-- Fully transparent background (nothing printed outside white box) -->
+      <rect width="${width}" height="${height}" fill="none"/>
+
+      <!-- WHITE INNER BOX ONLY — matches the center white area on the template -->
+      <rect x="60" y="520" width="${width - 120}" height="${height - 660}"
+            fill="#FFFFFF"
+            rx="30"/>
+
+      <!-- Participant Name Label -->
+      <text x="${width / 2}" y="700"
+            font-family="Arial, sans-serif"
+            font-size="32"
+            font-weight="600"
+            fill="#6B7280"
+            text-anchor="middle"
+            letter-spacing="3">PARTICIPANT NAME</text>
+
+      <!-- Student Name -->
+      <text x="${width / 2}" y="800"
+            font-family="Arial, sans-serif"
+            font-size="80"
+            font-weight="900"
+            fill="#111827"
+            text-anchor="middle"
+            letter-spacing="1">${name}</text>
+
+      <!-- Gold divider line -->
+      <line x1="200" y1="860" x2="${width - 200}" y2="860"
+            stroke="#FBBF24"
+            stroke-width="5"/>
+
+      <!-- School -->
+      <text x="${width / 2}" y="960"
+            font-family="Arial, sans-serif"
+            font-size="40"
+            font-weight="700"
+            fill="#374151"
+            text-anchor="middle">${school}</text>
+
+      ${rollNo ? `
+        <text x="200" y="1080"
+              font-family="Arial, sans-serif"
+              font-size="30"
+              font-weight="600"
+              fill="#6B7280">Roll No:</text>
+        <text x="430" y="1080"
+              font-family="Arial, sans-serif"
+              font-size="30"
+              font-weight="700"
+              fill="#111827">${rollNo}</text>
+      ` : ''}
+
+      ${className ? `
+        <text x="${width - 620}" y="1080"
+              font-family="Arial, sans-serif"
+              font-size="30"
+              font-weight="600"
+              fill="#6B7280">Class:</text>
+        <text x="${width - 390}" y="1080"
+              font-family="Arial, sans-serif"
+              font-size="30"
+              font-weight="700"
+              fill="#111827">${className}</text>
+      ` : ''}
+
+      <!-- ID badge -->
+      <rect x="320" y="1150" width="560" height="70"
+            fill="#F3F4F6"
+            rx="10"/>
+      <text x="${width / 2}" y="1195"
+            font-family="Courier New, monospace"
+            font-size="34"
+            font-weight="700"
+            fill="#374151"
+            text-anchor="middle"
+            letter-spacing="4">ID: ${studentId}</text>
+
+      <!-- Scan label -->
+      <text x="${width / 2}" y="1300"
+            font-family="Arial, sans-serif"
+            font-size="28"
+            font-weight="600"
+            fill="#6B7280"
+            text-anchor="middle"
+            letter-spacing="1">SCAN FOR DETAILS</text>
     </svg>
   `);
 
-  const qrX = Math.round(cx - qrSize / 2);
-  const qrY = Math.round(cy + qrSize * 0.05);
+  // Position QR code
+  const qrLeft = Math.round((width - qrSize) / 2);
+  const qrTop = 1360;
 
   const filename = `card_${student._id}.png`;
   const outputPath = path.join('generated', filename);
 
-  await sharp(templatePath)
-    .composite([
-      { input: textSvg, top: 0, left: 0 },
-      { input: qrBuffer, top: qrY, left: qrX }
-    ])
-    .png()
-    .toFile(outputPath);
+  // Compose the final card
+await sharp({
+  create: {
+    width: width,
+    height: height,
+    channels: 4,
+    background: { r: 255, g: 255, b: 255, alpha: 0 } // ← alpha: 0 = transparent
+  }
+})
+  .composite([
+    { input: cardSvg, top: 0, left: 0 },
+    { input: qrBuffer, top: qrTop, left: qrLeft }
+  ])
+  .png({ quality: 100 })
+  .toFile(outputPath);
 
   await Student.findByIdAndUpdate(student._id, {
     cardGenerated: true,

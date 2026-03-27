@@ -359,7 +359,20 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
 .modal-title { font-family: 'Instrument Serif', serif; font-size: 1.2rem; color: var(--ink); }
 .modal-close { background: none; border: none; color: var(--ink-4); cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 6px; transition: all 0.15s; }
 .modal-close:hover { background: var(--paper); color: var(--ink); }
-.card-preview { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 14px; background: var(--paper); }
+.card-preview {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 4px solid #2d2d9f;          /* blue theme border */
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #1a1a6e, #2e2e9e);  /* blue outer bg */
+  padding: 12px;                        /* space between border and white card */
+}
+
+.card-preview img {
+  width: 100%;
+  display: block;
+  border-radius: 8px;                   /* white inner card corners */
+}
 .card-preview img { width: 100%; display: block; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 </style>
@@ -382,7 +395,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
     <a class="nav-item" href="#" onclick="downloadAllCards();return false;"><span class="nav-icon">⇩</span>Download All Cards</a>
   </nav>
   <div class="sidebar-footer">
-    <span class="version">CardForge v1.0</span>
+    <span class="version">CardForge v2.0</span>
   </div>
 </aside>
 
@@ -391,8 +404,8 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
   <div class="texture-bar"></div>
 
   <div class="page-header" id="upload">
-    <h1 class="page-title">Student ID<br><em>Card Generator</em></h1>
-    <p class="page-sub">Upload your Excel sheet, store students in MongoDB, and generate ID cards with scannable QR codes — instantly.</p>
+    <h1 class="page-title">Graphic Era<br><em>ID Card Generator</em></h1>
+    <p class="page-sub">Upload your Excel sheet, store participants in MongoDB, and generate professional 4×6 inch ID cards with scannable QR codes.</p>
   </div>
 
   <div class="divider"></div>
@@ -400,7 +413,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
   <div class="stats-row">
     <div class="stat">
       <div class="stat-num" id="statTotal">0</div>
-      <div class="stat-label"><span class="stat-dot" style="background:#9b9a95"></span>Total Students</div>
+      <div class="stat-label"><span class="stat-dot" style="background:#9b9a95"></span>Total Participants</div>
     </div>
     <div class="stat">
       <div class="stat-num" id="statGenerated">0</div>
@@ -456,14 +469,15 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
 
       <div class="card">
         <div class="card-header">
-          <span class="card-icon">🖼</span>
-          <span class="card-title">Card Template</span>
+          <span class="card-icon">🎨</span>
+          <span class="card-title">Card Design</span>
         </div>
         <div class="card-body">
           <ul class="info-list">
-            <li><span class="info-marker">📁</span><span>Place your template image (JPG/PNG) inside the <code>/images</code> folder on the server.</span></li>
-            <li><span class="info-marker">✍</span><span><strong>Student name</strong> and <strong>school name</strong> are placed at the exact center of the image.</span></li>
-            <li><span class="info-marker">◈</span><span>A <strong>QR code</strong> is embedded below — scan it to view all student details instantly.</span></li>
+            <li><span class="info-marker">📐</span><span>Cards are generated at <strong>4×6 inch</strong> size (1200×1800px @ 300 DPI) — perfect for professional printing.</span></li>
+            <li><span class="info-marker">🎓</span><span>Features <strong>Graphic Era</strong> branding with "Mega Career Counselling" event title in a premium gradient design.</span></li>
+            <li><span class="info-marker">◈</span><span>Each card includes a <strong>scannable QR code</strong> that displays full participant details when scanned.</span></li>
+            <li><span class="info-marker">✨</span><span>Professional layout with participant name, school, roll number, class, and unique ID number.</span></li>
           </ul>
         </div>
       </div>
@@ -473,7 +487,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
     <div class="table-card">
       <div class="card-header">
         <span class="card-icon">⊞</span>
-        <span class="card-title">Students Database</span>
+        <span class="card-title">Participants Database</span>
       </div>
       <div class="table-toolbar">
         <div class="search-wrap">
@@ -485,12 +499,12 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
       <div id="studentsContainer" style="flex:1;overflow:auto;">
         <div class="empty-state">
           <div class="empty-icon">📭</div>
-          <div class="empty-title">No students yet</div>
+          <div class="empty-title">No participants yet</div>
           <div class="empty-sub">Upload an Excel file to get started</div>
         </div>
       </div>
       <div class="table-footer">
-        <span class="table-count" id="tableCount">0 students</span>
+        <span class="table-count" id="tableCount">0 participants</span>
         <div class="progress-wrap" id="genProgress">
           <div class="progress-label" id="genProgressText">Generating…</div>
           <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
@@ -557,7 +571,7 @@ function updateStats() {
   document.getElementById('statTotal').textContent = allStudents.length;
   document.getElementById('statGenerated').textContent = gen;
   document.getElementById('statPending').textContent = allStudents.length-gen;
-  document.getElementById('tableCount').textContent = allStudents.length+' student'+(allStudents.length!==1?'s':'');
+  document.getElementById('tableCount').textContent = allStudents.length+' participant'+(allStudents.length!==1?'s':'');
 }
 
 function filterStudents() {
@@ -569,14 +583,14 @@ function downloadCard(id) {
 }
 
 function downloadAllCards() {
-  if (!allStudents.length) return alert('No students found.');
+  if (!allStudents.length) return alert('No participants found.');
   window.location.href = '/api/download-all-cards';
 }
 
 function renderStudents(students) {
   const c = document.getElementById('studentsContainer');
-  if (!students.length) { c.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No students found</div><div class="empty-sub">Upload an Excel file to get started</div></div>`; return; }
-  c.innerHTML = `<table><thead><tr><th>Student</th><th>School</th><th>Class</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+  if (!students.length) { c.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No participants found</div><div class="empty-sub">Upload an Excel file to get started</div></div>`; return; }
+  c.innerHTML = `<table><thead><tr><th>Participant</th><th>School</th><th>Class</th><th>Status</th><th>Actions</th></tr></thead><tbody>
     ${students.map(s=>`<tr>
       <td><div class="name-cell"><div class="avatar">${s.name.charAt(0).toUpperCase()}</div><div><div class="name-primary">${s.name}</div>${s.rollNo?`<div class="name-secondary">Roll · ${s.rollNo}</div>`:''}</div></div></td>
       <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)">${s.schoolName}</td>
@@ -622,7 +636,7 @@ async function generateAllCards() {
 }
 
 async function clearAll() {
-  if (!confirm('Delete all students from the database?')) return;
+  if (!confirm('Delete all participants from the database?')) return;
   await fetch('/api/students',{method:'DELETE'});
   loadStudents();
 }
