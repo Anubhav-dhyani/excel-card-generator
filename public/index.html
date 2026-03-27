@@ -35,6 +35,34 @@ body {
   min-height: 100vh;
   display: flex;
 }
+.form-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.form-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--off-white);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  color: var(--ink);
+  font-family: 'Geist', system-ui, sans-serif;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--ink-3);
+  background: var(--white);
+}
+.form-note {
+  font-size: 0.72rem;
+  color: var(--ink-4);
+  margin-top: 8px;
+}
+.card .card-body .btn-full {
+  margin-top: 10px;
+}
 
 /* Sidebar */
 .sidebar {
@@ -429,6 +457,28 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
 
     <!-- Left -->
     <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- 1) Keep Add Single Student card FIRST -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">👤</span>
+          <span class="card-title">Add Single Student</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <input id="one_name" class="form-input" placeholder="Name *" />
+            <input id="one_school" class="form-input" placeholder="School Name *" />
+            <input id="one_email" class="form-input" placeholder="Email (optional)" />
+            <input id="one_phone" class="form-input" placeholder="Phone (optional)" />
+            <input id="one_address" class="form-input" placeholder="Address (optional)" />
+          </div>
+          <button class="btn btn-dark btn-full" onclick="createSingleStudent()">Create + Generate Card</button>
+          <div class="alert" id="singleAlert"></div>
+          <div class="form-note">Name and School are required.</div>
+        </div>
+      </div>
+
+      <!-- 2) Upload card second -->
       <div class="card">
         <div class="card-header">
           <span class="card-icon">↑</span>
@@ -467,6 +517,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
         </div>
       </div>
 
+      <!-- 3) Card Design card third -->
       <div class="card">
         <div class="card-header">
           <span class="card-icon">🎨</span>
@@ -481,6 +532,7 @@ td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
           </ul>
         </div>
       </div>
+
     </div>
 
     <!-- Right: Table -->
@@ -561,6 +613,54 @@ async function uploadExcel() {
   } catch(e) { showAlert('uploadAlert','error','Network error: '+e.message); }
   btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'Upload & Save to Database';
 }
+
+
+async function createSingleStudent() {
+  const name = document.getElementById('one_name')?.value.trim() || '';
+  const schoolName = document.getElementById('one_school')?.value.trim() || '';
+  const email = document.getElementById('one_email')?.value.trim() || '';
+  const phone = document.getElementById('one_phone')?.value.trim() || '';
+  const address = document.getElementById('one_address')?.value.trim() || '';
+
+  if (!name || !schoolName) {
+    showAlert('singleAlert', 'error', 'Name and School are required');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/student', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        schoolName,
+        email,
+        phone,
+        address,
+        generateCard: true
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showAlert('singleAlert', 'error', data.error || 'Failed to add student');
+      return;
+    }
+
+    showAlert('singleAlert', 'success', '✓ Student added and card generated');
+
+    ['one_name', 'one_school', 'one_email', 'one_phone', 'one_address'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+
+    loadStudents();
+  } catch (e) {
+    showAlert('singleAlert', 'error', 'Network error: ' + e.message);
+  }
+}
+
 
 async function loadStudents() {
   try { const res = await fetch('/api/students'); allStudents = await res.json(); updateStats(); renderStudents(allStudents); } catch(e){}

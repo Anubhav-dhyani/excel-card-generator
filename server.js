@@ -51,7 +51,6 @@ const upload = multer({ storage });
 function normalizeEmail(v = '') {
   return String(v).trim().toLowerCase();
 }
-
 function normalizePhone(v = '') {
   return String(v).replace(/\D/g, '');
 }
@@ -426,6 +425,72 @@ app.delete('/api/students', async (req, res) => {
     res.json({ success: true, message: 'All students deleted' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// POST: Add single student + optional card generation
+app.post('/api/student', async (req, res) => {
+  try {
+    const {
+      name,
+      schoolName,
+      rollNo = '',
+      class: className = '',
+      email = '',
+      phone = '',
+      address = '',
+      generateCard = true
+    } = req.body || {};
+
+    if (!name || !schoolName) {
+      return res.status(400).json({ error: 'name and schoolName are required' });
+    }
+
+    const nEmail = normalizeEmail(email);
+    const nPhone = normalizePhone(phone);
+
+    // duplicate check by email OR phone
+    const or = [];
+    if (nEmail) or.push({ email: nEmail });
+    if (nPhone) or.push({ phone: nPhone });
+
+    if (or.length) {
+      const existing = await Student.findOne({ $or: or });
+      if (existing) {
+        return res.status(409).json({
+          success: false,
+          error: 'Student already exists with same email or phone'
+        });
+      }
+    }
+
+    const student = await Student.create({
+      name: String(name).trim(),
+      schoolName: String(schoolName).trim(),
+      rollNo: String(rollNo).trim(),
+      class: String(className).trim(),
+      email: nEmail || undefined,
+      phone: nPhone || undefined,
+      address: String(address).trim()
+    });
+
+    let cardPath = null;
+    if (generateCard) {
+      const filename = await generateCardForStudent(student);
+      cardPath = `/generated/${filename}`;
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Student created successfully',
+      student,
+      cardPath
+    });
+  } catch (err) {
+    if (err && err.code === 11000) {
+      return res.status(409).json({ success: false, error: 'Duplicate email or phone' });
+    }
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 
