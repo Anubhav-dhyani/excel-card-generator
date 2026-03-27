@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardForge — Student ID Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white: #ffffff;
+  --off-white: #fafaf8;
+  --paper: #f5f4ef;
+  --border: #e5e4de;
+  --border-light: #eeede8;
+  --ink: #1a1917;
+  --ink-2: #3d3c38;
+  --ink-3: #6b6a65;
+  --ink-4: #9b9a95;
+  --green: #2d6a4f;
+  --green-bg: #eef7f2;
+  --green-border: #b7ddc8;
+  --amber: #92400e;
+  --amber-bg: #fef9ed;
+  --amber-border: #fcd34d;
+  --red: #991b1b;
+  --red-bg: #fef2f2;
+  --sidebar-w: 220px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Geist', system-ui, sans-serif;
+  background: var(--white);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  height: 100vh;
+  position: fixed;
+  top: 0; left: 0;
+  display: flex; flex-direction: column;
+  padding: 28px 0;
+  background: var(--white);
+  z-index: 50;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 24px 28px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+.logo-mark {
+  width: 28px; height: 28px;
+  background: var(--ink); border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 14px; flex-shrink: 0;
+}
+.logo-name { font-size: 0.9rem; font-weight: 600; letter-spacing: -0.3px; color: var(--ink); }
+nav { flex: 1; padding: 0 12px; }
+.nav-label {
+  font-size: 0.65rem; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--ink-4); padding: 0 12px;
+  margin-bottom: 6px; margin-top: 20px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 12px; border-radius: 7px;
+  font-size: 0.83rem; font-weight: 400;
+  color: var(--ink-3); cursor: pointer;
+  transition: all 0.15s; text-decoration: none;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--paper); color: var(--ink); }
+.nav-item.active { background: var(--paper); color: var(--ink); font-weight: 500; }
+.nav-icon { width: 16px; opacity: 0.6; font-size: 13px; flex-shrink: 0; }
+.sidebar-footer {
+  padding: 16px 24px 0;
+  border-top: 1px solid var(--border-light);
+}
+.version { font-size: 0.72rem; color: var(--ink-4); }
+
+/* Main */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1; min-height: 100vh;
+  background: var(--off-white);
+}
+
+/* Texture bar */
+.texture-bar {
+  height: 110px;
+  background:
+    linear-gradient(180deg, rgba(250,250,248,0) 0%, var(--off-white) 100%),
+    linear-gradient(135deg, #c8e6c9 0%, #b2dfdb 25%, #bbdefb 55%, #c5cae9 80%, #d1c4e9 100%);
+  position: relative;
+}
+.texture-bar::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+  background-size: 200px;
+  mix-blend-mode: multiply;
+}
+
+/* Page header */
+.page-header { padding: 0 48px 32px; }
+.page-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 2.5rem; font-weight: 400;
+  color: var(--ink); line-height: 1.1;
+  letter-spacing: -0.5px; padding-top: 28px; margin-bottom: 10px;
+}
+.page-sub { font-size: 0.87rem; color: var(--ink-3); max-width: 440px; line-height: 1.65; }
+
+.divider { height: 1px; background: var(--border); margin: 0 48px 28px; }
+
+/* Stats */
+.stats-row { display: flex; gap: 12px; padding: 0 48px 28px; flex-wrap: wrap; }
+.stat {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px; min-width: 130px;
+}
+.stat-num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.9rem; color: var(--ink); line-height: 1; margin-bottom: 5px;
+}
+.stat-label { font-size: 0.73rem; color: var(--ink-4); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.stat-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+/* Content */
+.content {
+  display: grid;
+  grid-template-columns: 370px 1fr;
+  gap: 20px;
+  padding: 0 48px 48px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .content { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .page-header, .stats-row, .content, .divider { padding-left: 20px; padding-right: 20px; margin-left: 0; margin-right: 0; }
+}
+
+/* Card */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex; align-items: center; gap: 9px;
+}
+.card-icon { font-size: 13px; opacity: 0.45; }
+.card-title { font-size: 0.83rem; font-weight: 600; color: var(--ink); letter-spacing: -0.2px; }
+.card-body { padding: 20px; }
+
+/* Upload */
+.upload-zone {
+  border: 1.5px dashed var(--border); border-radius: 10px;
+  padding: 28px 20px; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: var(--off-white); position: relative;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--ink-3); background: var(--paper); }
+.upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.upload-icon-wrap {
+  width: 42px; height: 42px;
+  background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 19px;
+  margin: 0 auto 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.upload-h { font-size: 0.87rem; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+.upload-p { font-size: 0.77rem; color: var(--ink-3); line-height: 1.5; }
+.tag {
+  display: inline-block;
+  background: var(--paper); border: 1px solid var(--border);
+  border-radius: 5px; padding: 2px 8px;
+  font-size: 0.7rem; color: var(--ink-3);
+  font-family: monospace; margin: 6px 2px 0;
+}
+.selected-file {
+  display: none; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 10px 14px;
+  background: var(--paper); border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.82rem;
+}
+.selected-file.show { display: flex; }
+.file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: var(--ink-4); font-size: 0.73rem; flex-shrink: 0; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 7px; padding: 9px 18px; border-radius: 8px;
+  font-family: 'Geist', sans-serif; font-size: 0.82rem; font-weight: 500;
+  border: none; cursor: pointer; transition: all 0.15s;
+  text-decoration: none; white-space: nowrap;
+}
+.btn-dark { background: var(--ink); color: var(--white); }
+.btn-dark:hover { background: var(--ink-2); }
+.btn-dark:disabled { background: var(--ink-4); cursor: not-allowed; }
+.btn-outline { background: var(--white); color: var(--ink); border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--paper); }
+.btn-ghost { background: transparent; color: var(--ink-3); border: 1px solid var(--border-light); }
+.btn-ghost:hover { background: var(--paper); color: var(--ink); }
+.btn-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.btn-green:hover { background: #d4eddf; }
+.btn-red { background: var(--red-bg); color: var(--red); border: 1px solid #fca5a5; }
+.btn-red:hover { background: #fee2e2; }
+.btn-full { width: 100%; margin-top: 14px; }
+.btn-sm { padding: 6px 13px; font-size: 0.77rem; }
+
+/* Alert */
+.alert {
+  display: none; align-items: center; gap: 9px;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 0.81rem; margin-top: 12px;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+.alert.show { display: flex; }
+.alert.success { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.alert.error { background: var(--red-bg); color: var(--red); border: 1px solid #fca5a5; }
+
+/* Format guide */
+.format-guide {
+  margin-top: 16px; padding: 14px 16px;
+  background: var(--off-white); border: 1px solid var(--border-light); border-radius: 8px;
+}
+.guide-title {
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--ink-4); margin-bottom: 9px;
+}
+.col-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.col-tag {
+  padding: 3px 9px; border-radius: 5px; font-size: 0.7rem;
+  font-family: monospace;
+  background: var(--white); border: 1px solid var(--border); color: var(--ink-3);
+}
+.col-tag.req { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); }
+
+/* Info list */
+.info-list { list-style: none; }
+.info-list li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border-light);
+  font-size: 0.82rem; color: var(--ink-2); line-height: 1.55;
+}
+.info-list li:last-child { border-bottom: none; }
+.info-marker { font-size: 12px; margin-top: 1px; flex-shrink: 0; }
+code {
+  background: var(--paper); border: 1px solid var(--border); border-radius: 4px;
+  padding: 1px 6px; font-size: 0.75rem; font-family: monospace; color: var(--ink-2);
+}
+
+/* Table */
+.table-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  min-height: 480px;
+}
+.table-toolbar {
+  padding: 12px 20px; border-bottom: 1px solid var(--border-light);
+  display: flex; gap: 10px; align-items: center;
+}
+.search-wrap { flex: 1; position: relative; }
+.search-icon {
+  position: absolute; left: 11px; top: 50%;
+  transform: translateY(-50%); color: var(--ink-4);
+  font-size: 12px; pointer-events: none;
+}
+.search-input {
+  width: 100%; background: var(--off-white); border: 1px solid var(--border);
+  border-radius: 7px; padding: 8px 12px 8px 32px;
+  color: var(--ink); font-size: 0.82rem; font-family: 'Geist', sans-serif;
+  outline: none; transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--ink-3); background: var(--white); }
+.search-input::placeholder { color: var(--ink-4); }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 9px 20px; text-align: left;
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--ink-4);
+  background: var(--off-white); border-bottom: 1px solid var(--border);
+}
+tbody tr { border-bottom: 1px solid var(--border-light); transition: background 0.1s; }
+tbody tr:hover { background: var(--off-white); }
+tbody tr:last-child { border-bottom: none; }
+td { padding: 11px 20px; vertical-align: middle; font-size: 0.82rem; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--paper); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 600; color: var(--ink-2); flex-shrink: 0;
+}
+.name-cell { display: flex; align-items: center; gap: 10px; }
+.name-primary { font-weight: 500; color: var(--ink); }
+.name-secondary { font-size: 0.71rem; color: var(--ink-4); margin-top: 1px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px; font-size: 0.69rem; font-weight: 500;
+}
+.badge.done { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.badge.pending { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.action-btns { display: flex; gap: 6px; }
+
+/* Empty */
+.empty-state { text-align: center; padding: 60px 20px; flex: 1; }
+.empty-icon { font-size: 2rem; opacity: 0.18; margin-bottom: 12px; }
+.empty-title { font-size: 0.88rem; font-weight: 500; color: var(--ink-3); margin-bottom: 5px; }
+.empty-sub { font-size: 0.77rem; color: var(--ink-4); }
+
+/* Table footer */
+.table-footer {
+  padding: 11px 20px; border-top: 1px solid var(--border-light);
+  display: flex; align-items: center; gap: 10px; background: var(--off-white);
+}
+.table-count { font-size: 0.74rem; color: var(--ink-4); flex: 1; }
+.progress-wrap { flex: 1; display: none; }
+.progress-label { font-size: 0.73rem; color: var(--ink-3); margin-bottom: 4px; }
+.progress-track { height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--ink); border-radius: 3px; transition: width 0.3s; width: 0%; }
+
+/* Spinner */
+.spinner {
+  width: 14px; height: 14px;
+  border: 1.5px solid rgba(255,255,255,0.35); border-top-color: white;
+  border-radius: 50%; animation: spin 0.65s linear infinite;
+}
+.spinner.dark { border-color: rgba(0,0,0,0.12); border-top-color: var(--ink); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Modal */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.25); backdrop-filter: blur(8px);
+  z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.overlay.show { display: flex; }
+.modal {
+  background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+  padding: 26px; max-width: 460px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+  animation: modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.modal-title { font-family: 'Instrument Serif', serif; font-size: 1.2rem; color: var(--ink); }
+.modal-close { background: none; border: none; color: var(--ink-4); cursor: pointer; font-size: 1rem; padding: 4px 6px; border-radius: 6px; transition: all 0.15s; }
+.modal-close:hover { background: var(--paper); color: var(--ink); }
+.card-preview { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 14px; background: var(--paper); }
+.card-preview img { width: 100%; display: block; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">🎓</div>
+    <span class="logo-name">CardForge</span>
+  </div>
+  <nav>
+    <div class="nav-label">Workspace</div>
+    <a class="nav-item active" href="#upload"><span class="nav-icon">↑</span>Upload Excel</a>
+    <a class="nav-item" href="#students"><span class="nav-icon">⊞</span>Students</a>
+    <div class="nav-label">Actions</div>
+    <a class="nav-item" href="#" onclick="generateAllCards();return false;"><span class="nav-icon">◈</span>Generate All Cards</a>
+    <a class="nav-item" href="#" onclick="clearAll();return false;"><span class="nav-icon">⊘</span>Clear Database</a>
+  </nav>
+  <div class="sidebar-footer">
+    <span class="version">CardForge v1.0</span>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+  <div class="texture-bar"></div>
+
+  <div class="page-header" id="upload">
+    <h1 class="page-title">Student ID<br><em>Card Generator</em></h1>
+    <p class="page-sub">Upload your Excel sheet, store students in MongoDB, and generate ID cards with scannable QR codes — instantly.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-label"><span class="stat-dot" style="background:#9b9a95"></span>Total Students</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="statGenerated">0</div>
+      <div class="stat-label"><span class="stat-dot" style="background:#2d6a4f"></span>Cards Generated</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="statPending">0</div>
+      <div class="stat-label"><span class="stat-dot" style="background:#d97706"></span>Pending</div>
+    </div>
+  </div>
+
+  <div class="content" id="students">
+
+    <!-- Left -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">↑</span>
+          <span class="card-title">Upload Excel File</span>
+        </div>
+        <div class="card-body">
+          <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+            <div class="upload-icon-wrap">📊</div>
+            <div class="upload-h">Drop your file here</div>
+            <div class="upload-p">or click to browse from your computer</div>
+            <div><span class="tag">.xlsx</span><span class="tag">.xls</span></div>
+          </div>
+          <div class="selected-file" id="selectedFile">
+            <span>📄</span>
+            <span class="file-name" id="fileName"></span>
+            <span class="file-size" id="fileSize"></span>
+          </div>
+          <button class="btn btn-dark btn-full" id="uploadBtn" disabled onclick="uploadExcel()">
+            <span class="spinner" id="uploadSpinner" style="display:none"></span>
+            <span id="uploadBtnText">Upload & Save to Database</span>
+          </button>
+          <div class="alert" id="uploadAlert"></div>
+          <div class="format-guide">
+            <div class="guide-title">Expected Columns</div>
+            <div class="col-tags">
+              <span class="col-tag req">Name ★</span>
+              <span class="col-tag req">School ★</span>
+              <span class="col-tag">Roll No</span>
+              <span class="col-tag">Class</span>
+              <span class="col-tag">Email</span>
+              <span class="col-tag">Phone</span>
+              <span class="col-tag">Address</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-icon">🖼</span>
+          <span class="card-title">Card Template</span>
+        </div>
+        <div class="card-body">
+          <ul class="info-list">
+            <li><span class="info-marker">📁</span><span>Place your template image (JPG/PNG) inside the <code>/images</code> folder on the server.</span></li>
+            <li><span class="info-marker">✍</span><span><strong>Student name</strong> and <strong>school name</strong> are placed at the exact center of the image.</span></li>
+            <li><span class="info-marker">◈</span><span>A <strong>QR code</strong> is embedded below — scan it to view all student details instantly.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Table -->
+    <div class="table-card">
+      <div class="card-header">
+        <span class="card-icon">⊞</span>
+        <span class="card-title">Students Database</span>
+      </div>
+      <div class="table-toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input type="text" class="search-input" id="searchInput" placeholder="Search by name or school…" oninput="filterStudents()">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadStudents()">↻ Refresh</button>
+      </div>
+      <div id="studentsContainer" style="flex:1;overflow:auto;">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div class="empty-title">No students yet</div>
+          <div class="empty-sub">Upload an Excel file to get started</div>
+        </div>
+      </div>
+      <div class="table-footer">
+        <span class="table-count" id="tableCount">0 students</span>
+        <div class="progress-wrap" id="genProgress">
+          <div class="progress-label" id="genProgressText">Generating…</div>
+          <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+        <button class="btn btn-green btn-sm" onclick="generateAllCards()">◈ Generate All</button>
+        <button class="btn btn-red btn-sm" onclick="clearAll()">⊘ Clear All</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Card Preview</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+let allStudents = [], selectedFile = null;
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+
+fileInput.addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+
+function setFile(f) {
+  selectedFile = f;
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileSize').textContent = (f.size/1024).toFixed(1)+' KB';
+  document.getElementById('selectedFile').classList.add('show');
+  document.getElementById('uploadBtn').disabled = false;
+}
+
+async function uploadExcel() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('uploadBtn');
+  const spinner = document.getElementById('uploadSpinner');
+  const btnText = document.getElementById('uploadBtnText');
+  btn.disabled = true; spinner.style.display = 'flex'; btnText.textContent = 'Uploading…';
+  const fd = new FormData(); fd.append('excel', selectedFile);
+  try {
+    const res = await fetch('/api/upload', { method:'POST', body: fd });
+    const data = await res.json();
+    if (data.success) { showAlert('uploadAlert','success','✓ '+data.message); loadStudents(); selectedFile=null; fileInput.value=''; document.getElementById('selectedFile').classList.remove('show'); }
+    else showAlert('uploadAlert','error', data.error||'Upload failed');
+  } catch(e) { showAlert('uploadAlert','error','Network error: '+e.message); }
+  btn.disabled = false; spinner.style.display = 'none'; btnText.textContent = 'Upload & Save to Database';
+}
+
+async function loadStudents() {
+  try { const res = await fetch('/api/students'); allStudents = await res.json(); updateStats(); renderStudents(allStudents); } catch(e){}
+}
+
+function updateStats() {
+  const gen = allStudents.filter(s=>s.cardGenerated).length;
+  document.getElementById('statTotal').textContent = allStudents.length;
+  document.getElementById('statGenerated').textContent = gen;
+  document.getElementById('statPending').textContent = allStudents.length-gen;
+  document.getElementById('tableCount').textContent = allStudents.length+' student'+(allStudents.length!==1?'s':'');
+}
+
+function filterStudents() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderStudents(allStudents.filter(s => s.name.toLowerCase().includes(q)||s.schoolName.toLowerCase().includes(q)));
+}
+
+function renderStudents(students) {
+  const c = document.getElementById('studentsContainer');
+  if (!students.length) { c.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No students found</div><div class="empty-sub">Upload an Excel file to get started</div></div>`; return; }
+  c.innerHTML = `<table><thead><tr><th>Student</th><th>School</th><th>Class</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${students.map(s=>`<tr>
+      <td><div class="name-cell"><div class="avatar">${s.name.charAt(0).toUpperCase()}</div><div><div class="name-primary">${s.name}</div>${s.rollNo?`<div class="name-secondary">Roll · ${s.rollNo}</div>`:''}</div></div></td>
+      <td style="max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)">${s.schoolName}</td>
+      <td style="color:var(--ink-3)">${s.class||'—'}</td>
+      <td>${s.cardGenerated?`<span class="badge done"><span class="badge-dot"></span>Generated</span>`:`<span class="badge pending"><span class="badge-dot"></span>Pending</span>`}</td>
+      <td><div class="action-btns">
+        <button class="btn btn-ghost btn-sm" onclick="generateCard('${s._id}','${s.name}')">Generate</button>
+        ${s.cardGenerated?`<button class="btn btn-outline btn-sm" onclick="viewCard('${s._id}','${s.name}','${s.cardPath}')">View</button>`:''}
+      </div></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function generateCard(id, name) {
+  showModal('Generating…', `<div style="text-align:center;padding:28px 0"><div class="spinner dark" style="width:30px;height:30px;border-width:2px;margin:0 auto 14px"></div><p style="color:var(--ink-3);font-size:0.83rem">Creating card for <strong style="color:var(--ink)">${name}</strong></p></div>`);
+  try {
+    const res = await fetch(`/api/generate-card/${id}`,{method:'POST'});
+    const data = await res.json();
+    if (data.success) { viewCard(id, name, data.cardPath.replace('/generated/','')); loadStudents(); }
+    else { closeModal(); alert('Error: '+data.error); }
+  } catch(e) { closeModal(); alert('Error: '+e.message); }
+}
+
+function viewCard(id, name, cardPath) {
+  const src = cardPath.startsWith('/')?cardPath:`/generated/${cardPath}`;
+  showModal(name, `<div class="card-preview"><img src="${src}?t=${Date.now()}" alt="Card"></div><div class="modal-actions"><a href="${src}" download class="btn btn-dark btn-sm">↓ Download</a><button class="btn btn-outline btn-sm" onclick="window.open('/api/student/${id}','_blank')">Details ↗</button></div>`);
+}
+
+async function generateAllCards() {
+  const pending = allStudents.filter(s=>!s.cardGenerated);
+  if (!pending.length) return alert('All cards already generated!');
+  const prog = document.getElementById('genProgress'), progText = document.getElementById('genProgressText'), fill = document.getElementById('progressFill');
+  prog.style.display = 'block';
+  for (let i=0; i<pending.length; i++) {
+    progText.textContent = `${i+1} / ${pending.length} generated`;
+    fill.style.width = ((i/pending.length)*100)+'%';
+    try { await fetch(`/api/generate-card/${pending[i]._id}`,{method:'POST'}); } catch(e){}
+  }
+  fill.style.width = '100%'; progText.textContent = `✓ All ${pending.length} cards done`;
+  setTimeout(()=>{ prog.style.display='none'; }, 3000);
+  loadStudents();
+}
+
+async function clearAll() {
+  if (!confirm('Delete all students from the database?')) return;
+  await fetch('/api/students',{method:'DELETE'});
+  loadStudents();
+}
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id); el.className = `alert ${type} show`; el.innerHTML = msg;
+  setTimeout(()=>el.classList.remove('show'), 4000);
+}
+function showModal(title, body) { document.getElementById('modalTitle').textContent=title; document.getElementById('modalBody').innerHTML=body; document.getElementById('overlay').classList.add('show'); }
+function closeModal() { document.getElementById('overlay').classList.remove('show'); }
+
+loadStudents();
+</script>
+</body>
+</html>

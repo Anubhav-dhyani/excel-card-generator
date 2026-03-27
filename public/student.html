@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Details</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a; --surface: #111827; --card: #162032;
+    --border: #1e3a5f; --accent: #3b82f6; --accent2: #06b6d4;
+    --text: #e2e8f0; --muted: #64748b; --success: #10b981;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 36px;
+    max-width: 440px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    animation: fadeUp 0.5s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  .top-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: var(--success);
+    border-radius: 50px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--success); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .avatar-ring {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem; font-weight: 800;
+    color: #fff;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 0 6px rgba(59,130,246,0.15), 0 0 0 12px rgba(59,130,246,0.07);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem; font-weight: 800;
+    text-align: center;
+    background: linear-gradient(90deg, #fff, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+
+  .school {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .detail {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .detail.full { grid-column: 1/-1; }
+
+  .detail-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .detail-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .footer {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .error-state {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .error-icon { font-size: 3rem; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="card" id="content">
+  <div style="text-align:center;padding:30px">
+    <div style="font-size:2rem;margin-bottom:12px">⏳</div>
+    <p style="color:var(--muted)">Loading student details...</p>
+  </div>
+</div>
+
+<script>
+  async function load() {
+    // Get ID from URL ?id=xxx or path /student/xxx
+    const params = new URLSearchParams(window.location.search);
+    let id = params.get('id');
+
+    // Also try from QR data embedded in page hash
+    if (!id && window.location.hash) {
+      try {
+        const data = JSON.parse(decodeURIComponent(window.location.hash.slice(1)));
+        renderFromQR(data);
+        return;
+      } catch(e) {}
+    }
+
+    if (!id) {
+      // Try to parse from path
+      const match = window.location.pathname.match(/\/student\/([a-f0-9]+)/i);
+      if (match) id = match[1];
+    }
+
+    if (!id) {
+      renderError('No student ID provided');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/student/${id}`);
+      if (!res.ok) throw new Error('Student not found');
+      const data = await res.json();
+      renderStudent(data);
+    } catch (err) {
+      renderError(err.message);
+    }
+  }
+
+  function renderFromQR(data) {
+    renderStudent({
+      name: data.name,
+      schoolName: data.school,
+      rollNo: data.roll,
+      class: data.class,
+      email: data.email,
+      phone: data.phone
+    });
+  }
+
+  function renderStudent(s) {
+    document.getElementById('content').innerHTML = `
+      <div class="top-badge"><div class="dot"></div> Verified Student</div>
+      <div class="avatar-ring">${s.name.charAt(0).toUpperCase()}</div>
+      <h1>${s.name}</h1>
+      <div class="school">🏫 ${s.schoolName}</div>
+      <div class="divider"></div>
+      <div class="details-grid">
+        ${s.rollNo ? `<div class="detail"><div class="detail-label">Roll Number</div><div class="detail-value">${s.rollNo}</div></div>` : ''}
+        ${s.class ? `<div class="detail"><div class="detail-label">Class / Grade</div><div class="detail-value">${s.class}</div></div>` : ''}
+        ${s.email ? `<div class="detail full"><div class="detail-label">Email</div><div class="detail-value">${s.email}</div></div>` : ''}
+        ${s.phone ? `<div class="detail"><div class="detail-label">Phone</div><div class="detail-value">${s.phone}</div></div>` : ''}
+        ${s.address ? `<div class="detail ${s.phone ? '' : 'full'}"><div class="detail-label">Address</div><div class="detail-value">${s.address}</div></div>` : ''}
+      </div>
+      <div class="footer">Scanned via QR Code • Student ID System</div>
+    `;
+  }
+
+  function renderError(msg) {
+    document.getElementById('content').innerHTML = `
+      <div class="error-state">
+        <div class="error-icon">❌</div>
+        <h2 style="font-family:'Syne',sans-serif;margin-bottom:8px">Not Found</h2>
+        <p style="color:var(--muted);font-size:0.88rem">${msg}</p>
+      </div>
+    `;
+  }
+
+  load();
+</script>
+</body>
+</html>
