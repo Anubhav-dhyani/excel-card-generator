@@ -15,6 +15,7 @@ app.use(express.static('public'));
 app.use('/images', express.static('images'));
 app.use('/generated', express.static('generated'));
 
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
@@ -180,16 +181,66 @@ function sanitizeFileName(value = '') {
   return String(value).replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
 }
 
+function wrapTextIntoLines(value = '', maxCharsPerLine = 14, maxLines = 3) {
+  const words = String(value).trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+    if (candidate.length <= maxCharsPerLine) {
+      currentLine = candidate;
+      continue;
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      lines.push(word);
+      currentLine = '';
+    }
+
+    if (lines.length === maxLines - 1) {
+      break;
+    }
+  }
+
+  const remainingWords = [];
+  if (currentLine) remainingWords.push(currentLine);
+
+  const usedWords = lines.join(' ').split(/\s+/).filter(Boolean).length + (currentLine ? currentLine.split(/\s+/).length : 0);
+  const leftovers = words.slice(usedWords);
+  if (leftovers.length) remainingWords.push(leftovers.join(' '));
+
+  if (remainingWords.length) {
+    const finalLine = remainingWords.join(' ').trim();
+    lines.push(finalLine);
+  }
+
+  if (lines.length > maxLines) {
+    lines.length = maxLines;
+  }
+
+  if (lines.length === maxLines && words.join(' ') !== lines.join(' ')) {
+    lines[maxLines - 1] = `${lines[maxLines - 1].slice(0, Math.max(0, maxCharsPerLine - 3)).trim()}...`;
+  }
+
+  return lines;
+}
+
 async function generateCardForStudent(student) {
   // 60x80mm at 300 DPI = 708 x 945 px
-  const width = 708;
-  const height = 945;
+  const width = 800;
+  const height = 1045;
 
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
   const qrData = `${baseUrl}/student.html?id=${student._id}`;
 
   // QR code size
-  const qrSize = 200;
+  const qrSize = 240;
   const qrBuffer = await QRCode.toBuffer(qrData, {
     width: qrSize,
     margin: 1,
@@ -197,11 +248,26 @@ async function generateCardForStudent(student) {
   });
 
   // Escape student data
-  const name = escapeSvgText((student.name || '').toUpperCase());
-  const school = escapeSvgText(student.schoolName || '');
+  const rawName = (student.name || '').toUpperCase();
+  const nameLines = wrapTextIntoLines(rawName, 14, 3).map(escapeSvgText);
+  const rawSchool = student.schoolName || '';
+  const schoolLines = wrapTextIntoLines(rawSchool, 18, 3).map(escapeSvgText);
   const rollNo = escapeSvgText(student.rollNo || '');
   const className = escapeSvgText(student.class || '');
   const studentId = escapeSvgText(student._id.toString().substring(0, 12).toUpperCase());
+  const nameLineHeight = 72;
+  const schoolLineHeight = 58;
+  const extraNameOffset = (nameLines.length - 1) * nameLineHeight;
+  const extraSchoolOffset = (schoolLines.length - 1) * schoolLineHeight;
+  const nameStartY = 180;
+  const dividerY = 210 + extraNameOffset;
+  const schoolY = 290 + extraNameOffset;
+  const infoY = 370 + extraNameOffset + extraSchoolOffset;
+  const detailsDividerY = 410 + extraNameOffset + extraSchoolOffset;
+  const idBadgeY = 440 + extraNameOffset + extraSchoolOffset;
+  const idTextY = 485 + extraNameOffset + extraSchoolOffset;
+  const scanLabelY = 600 + extraNameOffset + extraSchoolOffset;
+  const qrTop = 620 + extraNameOffset + extraSchoolOffset;
 
   // Layout constants (all coordinates relative to 708x945 white card)
  const cardSvg = Buffer.from(`
@@ -229,32 +295,32 @@ async function generateCardForStudent(student) {
           letter-spacing="4">PARTICIPANT</text>
 
     <!-- Name (REDUCED) -->
-    <text x="${width / 2}" y="180"
+    <text x="${width / 2}" y="${nameStartY}"
           font-family="Arial, sans-serif"
-          font-size="60"
+          font-size="80"
           font-weight="900"
           fill="#111827"
           text-anchor="middle"
-          letter-spacing="1.5">${name}</text>
+          letter-spacing="1.5">${nameLines.map((line, index) => `<tspan x="${width / 2}" dy="${index === 0 ? 0 : nameLineHeight}">${line}</tspan>`).join('')}</text>
 
     <!-- Gold divider -->
-    <rect x="70" y="210" width="${width - 140}" height="7" fill="#FBBF24" rx="4"/>
+    <rect x="70" y="${dividerY}" width="${width - 140}" height="7" fill="#FBBF24" rx="4"/>
 
     <!-- School (INCREASED) -->
-    <text x="${width / 2}" y="290"
+    <text x="${width / 2}" y="${schoolY}"
           font-family="Arial, sans-serif"
-          font-size="42"
+          font-size="70"
           font-weight="800"
-          fill="#374151"
-          text-anchor="middle">${school}</text>
+          fill="#111827"
+          text-anchor="middle">${schoolLines.map((line, index) => `<tspan x="${width / 2}" dy="${index === 0 ? 0 : schoolLineHeight}">${line}</tspan>`).join('')}</text>
 
     <!-- Roll + Class -->
     ${rollNo ? `
-      <text x="90" y="370"
+      <text x="90" y="${infoY}"
             font-family="Arial, sans-serif"
             font-size="28"
             fill="#6B7280">Roll No:</text>
-      <text x="260" y="370"
+      <text x="260" y="${infoY}"
             font-family="Arial, sans-serif"
             font-size="28"
             font-weight="700"
@@ -262,11 +328,11 @@ async function generateCardForStudent(student) {
     ` : ''}
 
     ${className ? `
-      <text x="${width - 300}" y="370"
+      <text x="${width - 300}" y="${infoY}"
             font-family="Arial, sans-serif"
             font-size="28"
             fill="#6B7280">Class:</text>
-      <text x="${width - 160}" y="370"
+      <text x="${width - 160}" y="${infoY}"
             font-family="Arial, sans-serif"
             font-size="28"
             font-weight="700"
@@ -274,31 +340,31 @@ async function generateCardForStudent(student) {
     ` : ''}
 
     <!-- Divider -->
-    <line x1="70" y1="410" x2="${width - 70}" y2="410"
+    <line x1="70" y1="${detailsDividerY}" x2="${width - 70}" y2="${detailsDividerY}"
           stroke="#E5E7EB" stroke-width="3"/>
 
     <!-- ID Badge -->
-    <rect x="${(width - 480) / 2}" y="440" width="480" height="70"
+    <rect x="${(width - 480) / 2}" y="${idBadgeY}" width="480" height="70"
           fill="#F3F4F6" rx="12"/>
-    <text x="${width / 2}" y="485"
+    <text x="${width / 2}" y="${idTextY}"
           font-family="Courier New, monospace"
-          font-size="30"
+          font-size="60"
           font-weight="700"
           fill="#374151"
           text-anchor="middle"
           letter-spacing="4">ID: ${studentId}</text>
 
     <!-- Scan label -->
-    <text x="${width / 2}" y="600"
+    <text x="${width / 2}" y="${scanLabelY}"
           font-family="Arial, sans-serif"
-          font-size="26"
+          font-size="50"
           font-weight="700"
           fill="#9CA3AF"
           text-anchor="middle"
           letter-spacing="3">SCAN FOR DETAILS</text>
 
     <!-- Bottom accent -->
-    <rect x="0" y="${height - 18}" width="${width}" height="18" fill="url(#topBar)"/>
+    <rect x="0" y="${height - 18}" width="${width}" height="25" fill="url(#topBar)"/>
   </svg>
 `);
 
@@ -307,8 +373,6 @@ async function generateCardForStudent(student) {
 
 // Center QR
 const qrLeft = Math.round((width - qrSize) / 2);
-const qrTop = 620;
-
 const filename = `card_${student._id}.png`;
 const outputPath = path.join('generated', filename);
 
@@ -478,16 +542,23 @@ app.post('/api/student', async (req, res) => {
     });
 
     let cardPath = null;
+    let warning = null;
     if (generateCard) {
-      const filename = await generateCardForStudent(student);
-      cardPath = `/generated/${filename}`;
+      try {
+        const filename = await generateCardForStudent(student);
+        cardPath = `/generated/${filename}`;
+      } catch (cardErr) {
+        warning = `Student saved, but card generation failed: ${cardErr.message}`;
+        console.error('Card generation failed for new student:', cardErr);
+      }
     }
 
     return res.status(201).json({
       success: true,
-      message: 'Student created successfully',
+      message: warning ? 'Student created, but card generation failed' : 'Student created successfully',
       student,
-      cardPath
+      cardPath,
+      warning
     });
   } catch (err) {
     if (err && err.code === 11000) {
