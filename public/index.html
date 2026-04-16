@@ -3,52 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Entry Pass Generator</title>
+  <title>Entry Pass Studio</title>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b0b0c;
+      --bg: #09090b;
       --panel: rgba(255, 255, 255, 0.06);
-      --text: rgba(255, 255, 255, 0.9);
-      --muted: rgba(255, 255, 255, 0.65);
+      --panel-strong: rgba(255, 255, 255, 0.09);
+      --text: rgba(255, 255, 255, 0.93);
+      --muted: rgba(255, 255, 255, 0.62);
       --border: rgba(255, 255, 255, 0.14);
+      --accent: #ef4444;
+      --accent-soft: rgba(239, 68, 68, 0.2);
+      --ok: #22c55e;
+      --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
     }
 
     * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { min-height: 100%; }
 
     body {
       margin: 0;
       font-family: 'Geist', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background:
-        radial-gradient(1200px 800px at 20% 10%, rgba(239, 68, 68, 0.25), transparent 50%),
-        radial-gradient(1000px 700px at 80% 0%, rgba(168, 85, 247, 0.18), transparent 50%),
-        radial-gradient(900px 700px at 60% 90%, rgba(34, 197, 94, 0.12), transparent 55%),
+        radial-gradient(1200px 800px at 10% 8%, rgba(239, 68, 68, 0.22), transparent 48%),
+        radial-gradient(1200px 900px at 85% 10%, rgba(59, 130, 246, 0.16), transparent 46%),
+        radial-gradient(1000px 900px at 70% 100%, rgba(34, 197, 94, 0.12), transparent 40%),
         var(--bg);
       color: var(--text);
     }
 
-    .wrap {
-      max-width: 1180px;
+    .page {
+      max-width: 1480px;
       margin: 0 auto;
-      padding: 26px 18px 40px;
+      padding: 22px 16px 30px;
     }
 
-    header {
+    .topbar {
       display: flex;
-      align-items: baseline;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
+      margin-bottom: 16px;
       padding-bottom: 14px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 18px;
+      flex-wrap: wrap;
     }
 
     .title {
-      font-size: 22px;
-      letter-spacing: 0.2px;
-      font-weight: 800;
-      margin: 0;
+      margin: 0 0 6px;
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
     }
 
     .sub {
@@ -58,44 +64,225 @@
       line-height: 1.5;
     }
 
-    .grid {
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .workspace {
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-      gap: 18px;
+      grid-template-columns: 320px 360px minmax(0, 1fr);
+      gap: 16px;
       align-items: start;
     }
 
-    @media (max-width: 980px) {
-      .grid { grid-template-columns: 1fr; }
+    @media (max-width: 1260px) {
+      .workspace { grid-template-columns: 300px 320px minmax(0, 1fr); }
     }
 
-    .card {
+    @media (max-width: 1080px) {
+      .workspace { grid-template-columns: 1fr; }
+    }
+
+    .panel {
       background: linear-gradient(180deg, var(--panel), rgba(255, 255, 255, 0.03));
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 20px;
       overflow: hidden;
-      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
     }
 
-    .card-h {
-      padding: 14px 16px;
+    .panel-head {
+      padding: 16px 16px 14px;
       border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .panel-body {
+      padding: 16px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .stack {
+      display: grid;
       gap: 10px;
     }
 
-    .card-h h2 {
+    .section-title {
       margin: 0;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      color: rgba(255, 255, 255, 0.85);
+      font-size: 12px;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.76);
     }
 
-    .card-b { padding: 16px; }
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.11);
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.34), rgba(239, 68, 68, 0.18));
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .btn.danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .btn[disabled],
+    .btn[aria-disabled="true"] {
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .button-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.82);
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0, 0, 0, 0.24);
+      color: var(--text);
+      outline: none;
+      font-size: 14px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: rgba(255,255,255,0.3);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      font-size: 12px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .student-list {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.18);
+      min-height: 260px;
+      max-height: 58vh;
+      overflow-y: auto;
+    }
+
+    .student-item {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      padding: 12px 14px;
+      cursor: pointer;
+      display: grid;
+      gap: 4px;
+    }
+
+    .student-item:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .student-item.active {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.06));
+    }
+
+    .student-name {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .student-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .empty {
+      padding: 20px 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .alert {
+      display: none;
+      padding: 12px 13px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.45;
+      border: 1px solid var(--border);
+    }
+
+    .alert.show { display: block; }
+    .alert.ok {
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.34);
+    }
+    .alert.err {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.34);
+    }
+
+    .ticket-wrap {
+      display: grid;
+      gap: 14px;
+    }
 
     .ticket {
       width: 100%;
@@ -103,62 +290,48 @@
       background-image: url('/images/templete.webp');
       background-repeat: no-repeat;
       background-position: center;
-      background-size: cover;
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background-size: 100% 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.16);
       position: relative;
       overflow: hidden;
-      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.5);
     }
 
-    .ticket .left-panel {
+    /* Name below ENTRY/PASS text, centered at panelCenterX=160 => 10% */
+    .ticket .name {
       position: absolute;
-      left: 0;
-      top: 0;
-      width: 24%;
-      height: 100%;
+      left: 10%;
+      top: 56%;
+      transform: translate(-50%, -50%);
+      width: 20%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #111111;
+      font-size: clamp(8px, 1.1vw, 18px);
+      line-height: 1.25;
+      white-space: pre-line;
+      word-break: break-word;
+      text-transform: uppercase;
     }
 
-   .ticket .name {
-  position: absolute;
-  left: 50%;
-  top: 52%; /* thoda aur neeche */
-  transform: translate(-50%, -50%);
-
-  width: 70%;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  text-align: center;
-
-  font-family: 'Poppins', sans-serif; /* clean modern font */
-  font-weight: 600; /* lighter than 900 */
-
-  letter-spacing: 0.3px;
-  color: #111;
-
-  text-transform: none; /* lowercase / normal text */
-
-  font-size: clamp(16px, 1.6vw, 24px);
-  line-height: 1.2;
-
-  white-space: pre-line;
-  word-break: break-word;
-}
-
+    /* QR centered below name: qrBoxLeft=75 => 4.69%, qrBoxTop=400 => 65.9%, size=170 => 10.625% */
     .ticket .qr {
       position: absolute;
-      left: 3%;
-      top: 60.5%;
-      width: 18%;
+      left: 4.69%;
+      top: 65.9%;
+      width: 10.625%;
       aspect-ratio: 1;
-      background: #fff;
-      border: 3px solid #111;
-      padding: 5px;
+      background: #ffffff;
+      border: 2px solid #111111;
+      padding: 0.15%;
       display: grid;
       place-items: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     }
 
     .ticket .qr img {
@@ -168,299 +341,186 @@
       image-rendering: pixelated;
     }
 
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
+    .preview-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
-      margin-top: 14px;
-      align-items: center;
     }
 
-    .btn {
-      appearance: none;
+    @media (max-width: 640px) {
+      .preview-meta,
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .meta-card {
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-weight: 650;
-      color: rgba(255,255,255,0.92);
-      background: rgba(255, 255, 255, 0.06);
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
-      user-select: none;
+      border-radius: 16px;
+      padding: 12px 13px;
+      background: rgba(255,255,255,0.04);
+      min-height: 82px;
     }
 
-    .btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.22); }
-    .btn:active { transform: translateY(1px); }
-    .btn[aria-disabled="true"] { opacity: 0.5; pointer-events: none; }
-
-    .btn.primary {
-      background: rgba(239, 68, 68, 0.22);
-      border-color: rgba(239, 68, 68, 0.45);
-    }
-
-    .btn.primary:hover {
-      background: rgba(239, 68, 68, 0.3);
-      border-color: rgba(239, 68, 68, 0.6);
-    }
-
-    .form {
-      display: grid;
-      gap: 10px;
-    }
-
-    label {
-      display: grid;
-      gap: 6px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      background: rgba(0, 0, 0, 0.2);
-      color: rgba(255,255,255,0.92);
-      outline: none;
-      font-size: 14px;
-    }
-
-    textarea { resize: vertical; min-height: 72px; }
-
-    input:focus, textarea:focus {
-      border-color: rgba(255, 255, 255, 0.32);
-      background: rgba(0, 0, 0, 0.26);
-    }
-
-    .row2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    @media (max-width: 520px) {
-      .row2 { grid-template-columns: 1fr; }
-    }
-
-    .alert {
-      display: none;
-      margin-top: 10px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.06);
-      font-size: 13px;
-      line-height: 1.4;
-      color: rgba(255,255,255,0.9);
-    }
-
-    .alert.show { display: block; }
-    .alert.ok { border-color: rgba(34,197,94,0.5); background: rgba(34,197,94,0.12); }
-    .alert.err { border-color: rgba(239,68,68,0.55); background: rgba(239,68,68,0.14); }
-
-    .meta {
-      margin-top: 10px;
+    .meta-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       color: var(--muted);
-      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .meta-value {
+      font-size: 14px;
       line-height: 1.45;
       word-break: break-word;
     }
 
-    .meta code {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 10px;
-      padding: 2px 8px;
-      color: rgba(255,255,255,0.9);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 12px;
-    }
-
-    .bulk-tools {
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-      display: grid;
-      gap: 12px;
-    }
-
-    .bulk-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .top-actions {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .library {
-      margin-top: 16px;
-      padding-top: 14px;
-      border-top: 1px solid var(--border);
-      display: grid;
-      gap: 10px;
-    }
-
-    .library-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .library-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-      gap: 10px;
-    }
-
-    @media (max-width: 760px) {
-      .library-layout { grid-template-columns: 1fr; }
-    }
-
-    .pass-list {
-      max-height: 300px;
-      overflow: auto;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.16);
-      display: grid;
-      gap: 0;
-    }
-
-    .pass-item {
-      border: 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      background: transparent;
-      color: rgba(255, 255, 255, 0.88);
-      text-align: left;
-      padding: 10px 12px;
-      cursor: pointer;
+    .help {
+      border: 1px dashed rgba(255,255,255,0.18);
+      border-radius: 16px;
+      padding: 12px;
+      color: var(--muted);
       font-size: 13px;
-    }
-
-    .pass-item:hover {
-      background: rgba(255, 255, 255, 0.06);
-    }
-
-    .pass-item.active {
-      background: rgba(239, 68, 68, 0.22);
-      border-bottom-color: rgba(239, 68, 68, 0.35);
-    }
-
-    .preview-box {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.16);
-      padding: 10px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .preview-box img {
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: #111;
+      line-height: 1.5;
+      background: rgba(255,255,255,0.03);
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
+  <div class="page">
+    <header class="topbar">
       <div>
-        <h1 class="title">Entry Pass</h1>
-        <p class="sub">Admin sets student details -> generates entry pass -> QR opens verified details.</p>
-        <div class="top-actions">
-          <a class="btn" href="/library.html">Open Dedicated Pass Library</a>
-        </div>
+        <h1 class="title">Entry Pass Studio</h1>
+        <p class="sub">Manage students, bulk uploads, downloads, and a live template preview from one workspace.</p>
       </div>
-      <p class="sub">Template: <code>/images/templete.webp</code></p>
+      <div class="top-actions">
+        <span class="pill">Template: `/images/templete.webp`</span>
+        <a class="btn" href="/library.html">Open Library Page</a>
+      </div>
     </header>
 
-    <div class="grid">
-      <section class="card">
-        <div class="card-h">
-          <h2>Preview</h2>
-          <span class="sub" id="previewHint">Type a name to preview</span>
+    <main class="workspace">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Manage Passes</h2>
+          <p class="sub">Search, select, download, and clear passes from one sidebar.</p>
         </div>
-        <div class="card-b">
-          <div class="ticket" id="ticket">
-            <div class="left-panel">
+        <div class="panel-body">
+          <div class="stack">
+            <p class="section-title">Student List</p>
+            <label>
+              Search student
+              <input id="searchInput" autocomplete="off" placeholder="Type student name..." />
+            </label>
+          </div>
+
+          <div class="student-list" id="studentList"></div>
+
+          <div class="button-grid">
+            <button class="btn" id="refreshBtn" type="button">Refresh List</button>
+            <button class="btn" id="downloadSingleBtn" type="button">Download Single</button>
+            <button class="btn" id="downloadAllBtn" type="button">Download All</button>
+            <button class="btn" id="generateSingleBtn" type="button">Generate Single</button>
+            <button class="btn danger" id="clearSingleBtn" type="button">Clear Single</button>
+            <button class="btn danger" id="clearAllBtn" type="button">Clear All</button>
+          </div>
+
+          <div class="alert" id="listAlert"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Create & Import</h2>
+          <p class="sub">Add one student quickly or upload many names and generate in bulk.</p>
+        </div>
+        <div class="panel-body">
+          <form class="stack" id="passForm">
+            <p class="section-title">Single Entry</p>
+            <label>
+              Student name
+              <input id="name" name="name" autocomplete="off" required placeholder="Enter student name" />
+            </label>
+            <button class="btn primary" id="genBtn" type="submit">Generate Entry Pass</button>
+          </form>
+
+          <div class="stack">
+            <p class="section-title">Bulk Upload</p>
+            <label>
+              Upload Excel / CSV
+              <input id="excelFile" name="excelFile" type="file" accept=".xlsx,.xls,.csv" />
+            </label>
+            <div class="button-grid">
+              <button class="btn" id="uploadBtn" type="button">Upload List</button>
+              <button class="btn" id="generateAllBtn" type="button">Generate All</button>
+            </div>
+          </div>
+
+          <div class="stack">
+            <p class="section-title">Templates & Shortcuts</p>
+            <div class="button-grid single">
+              <a class="btn" href="/images/templete.webp" target="_blank" rel="noreferrer">Open Current Template</a>
+              <a class="btn" href="/library.html">Open Large Library View</a>
+              <a class="btn" href="/api/download-all-passes">Direct Download All ZIP</a>
+            </div>
+          </div>
+
+          <div class="help">
+            Use the left sidebar to select any student. The right preview updates instantly and shows the same template layout used for the exported pass.
+          </div>
+
+          <div class="alert" id="formAlert"></div>
+          <div class="meta-card">
+            <div class="meta-label">Bulk Status</div>
+            <div class="meta-value" id="bulkMeta">Waiting for action.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">Live Preview</h2>
+          <p class="sub" id="previewHint">Type a name or select a student to preview the actual pass.</p>
+        </div>
+        <div class="panel-body">
+          <div class="ticket-wrap">
+            <div class="ticket" id="ticket">
               <div class="name" id="previewName">STUDENT&#10;NAME</div>
               <div class="qr" aria-label="QR code">
                 <img id="qrImg" alt="QR code" />
               </div>
             </div>
-          </div>
 
-          <div class="actions">
-            <a class="btn" id="downloadBtn" href="#" aria-disabled="true">Download PNG</a>
-            <a class="btn" id="verifyBtn" href="#" target="_blank" rel="noreferrer" aria-disabled="true">Open verified details</a>
-            <button class="btn" id="copyBtn" type="button" aria-disabled="true">Copy verify link</button>
-          </div>
-
-          <div class="meta" id="meta"></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="card-h">
-          <h2>Admin</h2>
-          <span class="sub">Create participant + generate QR</span>
-        </div>
-        <div class="card-b">
-          <form class="form" id="passForm">
-            <label>
-              Student name *
-              <input id="name" name="name" autocomplete="off" required />
-            </label>
-            <button class="btn primary" id="genBtn" type="submit">Generate entry pass</button>
-            <div class="alert" id="alert"></div>
-          </form>
-
-          <div class="bulk-tools">
-            <p class="sub">Bulk upload student names/details, generate all passes, and download everything in one ZIP.</p>
-            <label>
-              Excel file
-              <input id="excelFile" name="excelFile" type="file" accept=".xlsx,.xls,.csv" />
-            </label>
-            <div class="bulk-actions">
-              <button class="btn" id="uploadBtn" type="button">Upload student list</button>
-              <button class="btn" id="generateAllBtn" type="button">Generate all passes</button>
-              <a class="btn" id="downloadAllBtn" href="/api/download-all-passes">Download all passes</a>
+            <div class="button-grid">
+              <button class="btn" id="downloadBtn" type="button" disabled>Download PNG</button>
+              <a class="btn" id="verifyBtn" href="#" target="_blank" rel="noreferrer" aria-disabled="true">Open Verified</a>
+              <button class="btn" id="copyBtn" type="button" aria-disabled="true">Copy Verify Link</button>
+              <button class="btn" id="refreshPreviewBtn" type="button">Reload Preview</button>
             </div>
-            <div class="meta" id="bulkMeta"></div>
-          </div>
 
-          <div class="library">
-            <div class="library-top">
-              <p class="sub">Pass Library (view all created passes)</p>
-              <div class="bulk-actions">
-                <button class="btn" id="refreshListBtn" type="button">Refresh list</button>
-                <button class="btn" id="clearAllBtn" type="button">Clear all list</button>
+            <div class="preview-meta">
+              <div class="meta-card">
+                <div class="meta-label">Selected Student</div>
+                <div class="meta-value" id="selectedName">No student selected</div>
               </div>
-            </div>
-            <div class="library-layout">
-              <div class="pass-list" id="passList"></div>
-              <div class="preview-box" id="libraryPreview">
-                <div class="sub">Select a pass to preview image and details.</div>
+              <div class="meta-card">
+                <div class="meta-label">Student ID</div>
+                <div class="meta-value" id="selectedId">-</div>
+              </div>
+              <div class="meta-card">
+                <div class="meta-label">Pass File</div>
+                <div class="meta-value" id="selectedPath">Not generated yet</div>
+              </div>
+              <div class="meta-card">
+                <div class="meta-label">Verify URL</div>
+                <div class="meta-value" id="selectedVerify">Not available</div>
               </div>
             </div>
           </div>
         </div>
       </section>
-    </div>
+    </main>
   </div>
 
   <script>
@@ -472,37 +532,65 @@
     const downloadBtn = $('downloadBtn');
     const verifyBtn = $('verifyBtn');
     const copyBtn = $('copyBtn');
-    const meta = $('meta');
-    const alertBox = $('alert');
+    const formAlert = $('formAlert');
+    const listAlert = $('listAlert');
     const bulkMeta = $('bulkMeta');
     const nameInput = $('name');
-    const passList = $('passList');
-    const libraryPreview = $('libraryPreview');
-    let allStudents = [];
-    let selectedStudentId = null;
+    const studentList = $('studentList');
+    const searchInput = $('searchInput');
+    const selectedName = $('selectedName');
+    const selectedId = $('selectedId');
+    const selectedPath = $('selectedPath');
+    const selectedVerify = $('selectedVerify');
+
+    let students = [];
+    let selectedStudent = null;
+    let current = null;
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text ?? '');
+      return div.innerHTML;
+    }
+
+    function showAlert(el, type, msg) {
+      el.className = `alert show ${type}`;
+      el.textContent = msg;
+    }
+
+    function clearAlert(el) {
+      el.className = 'alert';
+      el.textContent = '';
+    }
+
+    function setDisabled(el, disabled) {
+      el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      if ('disabled' in el) el.disabled = disabled;
+      el.tabIndex = disabled ? -1 : 0;
+    }
 
     function formatPreviewName(value) {
       const words = String(value || '').trim().toUpperCase().split(/\s+/).filter(Boolean);
       if (!words.length) return 'STUDENT\nNAME';
 
       const lines = [];
-      let current = '';
+      let currentLine = '';
 
       for (const word of words) {
-        const next = current ? `${current} ${word}` : word;
-        if (next.length <= 11) {
-          current = next;
+        const candidate = currentLine ? `${currentLine} ${word}` : word;
+        if (candidate.length <= 11) {
+          currentLine = candidate;
           continue;
         }
 
-        if (current) lines.push(current);
-        current = word;
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
         if (lines.length === 1) break;
       }
 
-      const usedWords = lines.join(' ').split(/\s+/).filter(Boolean).length + (current ? current.split(/\s+/).length : 0);
+      const usedWords = lines.join(' ').split(/\s+/).filter(Boolean).length + (currentLine ? currentLine.split(/\s+/).length : 0);
       const rest = words.slice(usedWords);
-      const finalLine = [current, ...rest].filter(Boolean).join(' ').trim();
+      const finalLine = [currentLine, ...rest].filter(Boolean).join(' ').trim();
       if (finalLine) lines.push(finalLine);
 
       return lines.slice(0, 2).map((line, index, arr) => {
@@ -513,140 +601,157 @@
       }).join('\n');
     }
 
-    function showAlert(type, msg) {
-      alertBox.className = `alert show ${type}`;
-      alertBox.textContent = msg;
+    function setPlaceholderQr() {
+      qrImg.alt = 'QR will appear after generating';
+      qrImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260">
+          <rect width="100%" height="100%" fill="#fff"/>
+          <rect x="22" y="22" width="216" height="216" fill="none" stroke="#111" stroke-width="6"/>
+          <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#111" font-family="Arial" font-size="18">Generate QR</text>
+        </svg>`
+      );
     }
 
-    function setDisabled(el, disabled) {
-      el.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-      el.tabIndex = disabled ? -1 : 0;
+    function updatePreview(studentLike = null) {
+      const item = studentLike || selectedStudent || null;
+      const displayName = item?.name || nameInput.value.trim();
+      previewName.textContent = formatPreviewName(displayName);
+
+      if (item?.passToken) {
+        qrImg.src = `/api/qr?token=${encodeURIComponent(item.passToken)}&t=${Date.now()}`;
+      } else if (current?.token) {
+        qrImg.src = `/api/qr?token=${encodeURIComponent(current.token)}&t=${Date.now()}`;
+      } else {
+        setPlaceholderQr();
+      }
+
+      previewHint.textContent = item?.name
+        ? `Previewing ${item.name}`
+        : displayName
+          ? 'Preview updates live'
+          : 'Type a name or select a student to preview the actual pass.';
+
+      selectedName.textContent = item?.name || 'No student selected';
+      selectedId.textContent = item?._id || '-';
+      selectedPath.textContent = item?.cardPath || 'Not generated yet';
+      selectedVerify.textContent = item?.passToken
+        ? `${window.location.origin}/student.html?token=${item.passToken}`
+        : 'Not available';
+
+      if (item?._id) {
+        downloadBtn.dataset.studentId = item._id;
+        downloadBtn.dataset.studentName = item.name || 'student';
+        downloadBtn.disabled = false;
+        setDisabled(downloadBtn, false);
+      } else {
+        downloadBtn.dataset.studentId = '';
+        downloadBtn.disabled = true;
+        setDisabled(downloadBtn, true);
+      }
+
+      if (item?.passToken) {
+        verifyBtn.href = `/student.html?token=${encodeURIComponent(item.passToken)}`;
+        setDisabled(verifyBtn, false);
+        setDisabled(copyBtn, false);
+      } else {
+        verifyBtn.href = '#';
+        setDisabled(verifyBtn, true);
+        setDisabled(copyBtn, true);
+      }
     }
 
-    function updatePreviewNameFromInput() {
-      const value = (nameInput.value || '').trim();
-      previewName.textContent = formatPreviewName(value);
-      previewHint.textContent = value ? 'Preview updates live' : 'Type a name to preview';
+    function getFilteredStudents() {
+      const q = (searchInput.value || '').trim().toLowerCase();
+      if (!q) return students;
+      return students.filter((s) => String(s.name || '').toLowerCase().includes(q));
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = String(text ?? '');
-      return div.innerHTML;
-    }
-
-    function renderPassPreview(student) {
-      if (!student) {
-        libraryPreview.innerHTML = '<div class="sub">Select a pass to preview image and details.</div>';
+    function renderStudentList() {
+      const filtered = getFilteredStudents();
+      if (!filtered.length) {
+        studentList.innerHTML = '<div class="empty">No students found.</div>';
         return;
       }
 
-      const passImg = student.cardPath
-        ? `/generated/${encodeURIComponent(student.cardPath)}?t=${Date.now()}`
-        : '';
-      const verifyUrl = student.passToken
-        ? `/student.html?token=${encodeURIComponent(student.passToken)}`
-        : '';
+      studentList.innerHTML = filtered.map((student) => `
+        <button class="student-item ${student._id === selectedStudent?._id ? 'active' : ''}" data-id="${escapeHtml(student._id)}">
+          <span class="student-name">${escapeHtml(student.name || 'Unnamed')}</span>
+          <span class="student-meta">${student.cardPath ? 'Pass ready' : 'Pass pending'}${student.passToken ? ' | QR ready' : ''}</span>
+        </button>
+      `).join('');
 
-      libraryPreview.innerHTML = `
-        <div><strong>${escapeHtml(student.name || 'Unnamed')}</strong></div>
-        <div class="sub">ID: <code>${escapeHtml(student._id || '')}</code></div>
-        ${passImg ? `<img src="${passImg}" alt="Pass preview for ${escapeHtml(student.name || 'student')}" />` : '<div class="sub">Pass not generated yet.</div>'}
-        <div class="bulk-actions">
-          <button class="btn" id="libGenerateBtn" type="button">Generate/Refresh pass</button>
-          <a class="btn" href="/api/download-pass/${encodeURIComponent(student._id)}">Download</a>
-          ${verifyUrl ? `<a class="btn" href="${verifyUrl}" target="_blank" rel="noreferrer">Open verified</a>` : ''}
-        </div>
-      `;
-
-      const libGenerateBtn = $('libGenerateBtn');
-      if (libGenerateBtn) {
-        libGenerateBtn.addEventListener('click', async () => {
-          try {
-            libGenerateBtn.disabled = true;
-            const res = await fetch(`/api/generate-pass/${encodeURIComponent(student._id)}`, { method: 'POST' });
-            const data = await res.json();
-            if (!res.ok || !data.success) {
-              bulkMeta.textContent = data.error || 'Could not generate pass.';
-              return;
-            }
-            await loadPassLibrary(student._id);
-            bulkMeta.textContent = `Pass generated for ${student.name}.`;
-          } catch (err) {
-            bulkMeta.textContent = err?.message || 'Could not generate pass.';
-          } finally {
-            libGenerateBtn.disabled = false;
-          }
-        });
-      }
-    }
-
-    function renderPassList() {
-      if (!allStudents.length) {
-        passList.innerHTML = '<div class="sub" style="padding:10px 12px;">No students found.</div>';
-        renderPassPreview(null);
-        return;
-      }
-
-      passList.innerHTML = allStudents.map((s) => {
-        const active = s._id === selectedStudentId ? 'active' : '';
-        return `<button class="pass-item ${active}" data-id="${escapeHtml(s._id)}">${escapeHtml(s.name || 'Unnamed')}</button>`;
-      }).join('');
-
-      passList.querySelectorAll('.pass-item').forEach((btn) => {
+      studentList.querySelectorAll('.student-item').forEach((btn) => {
         btn.addEventListener('click', () => {
-          selectedStudentId = btn.getAttribute('data-id');
-          const selected = allStudents.find((s) => s._id === selectedStudentId) || null;
-          renderPassList();
-          renderPassPreview(selected);
+          const id = btn.getAttribute('data-id');
+          selectedStudent = students.find((student) => student._id === id) || null;
+          current = selectedStudent ? { student: selectedStudent, token: selectedStudent.passToken } : null;
+          renderStudentList();
+          updatePreview(selectedStudent);
         });
       });
-
-      const selected = allStudents.find((s) => s._id === selectedStudentId) || allStudents[0];
-      selectedStudentId = selected?._id || null;
-      renderPassPreview(selected || null);
-      if (selectedStudentId) {
-        passList.querySelector(`[data-id="${selectedStudentId}"]`)?.classList.add('active');
-      }
     }
 
-    async function loadPassLibrary(preferId = null) {
-      try {
-        const res = await fetch('/api/students');
-        const data = await res.json();
-        allStudents = Array.isArray(data) ? data : [];
-        if (preferId) selectedStudentId = preferId;
-        renderPassList();
-      } catch (err) {
-        passList.innerHTML = `<div class="sub" style="padding:10px 12px;">${escapeHtml(err?.message || 'Could not load list.')}</div>`;
+    async function loadStudents(preferId = null) {
+      const res = await fetch('/api/students');
+      const data = await res.json();
+      students = Array.isArray(data) ? data : [];
+
+      if (preferId) {
+        selectedStudent = students.find((student) => student._id === preferId) || selectedStudent;
+      } else if (selectedStudent?._id) {
+        selectedStudent = students.find((student) => student._id === selectedStudent._id) || null;
+      } else {
+        selectedStudent = students[0] || null;
       }
+
+      if (selectedStudent) {
+        current = { student: selectedStudent, token: selectedStudent.passToken };
+      } else if (!nameInput.value.trim()) {
+        current = null;
+      }
+
+      renderStudentList();
+      updatePreview(selectedStudent);
     }
 
-    nameInput.addEventListener('input', updatePreviewNameFromInput);
-    updatePreviewNameFromInput();
+    async function generateSelectedPass() {
+      if (!selectedStudent?._id) {
+        showAlert(listAlert, 'err', 'Select a student first.');
+        return;
+      }
 
-    qrImg.alt = 'QR will appear after generating';
-    qrImg.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220">
-        <rect width="100%" height="100%" fill="#fff"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#111" font-family="Arial" font-size="14">Generate to get QR</text>
-      </svg>`
-    );
+      clearAlert(listAlert);
+      const res = await fetch(`/api/generate-pass/${encodeURIComponent(selectedStudent._id)}`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Could not generate pass.');
+      }
+      await loadStudents(selectedStudent._id);
+      showAlert(listAlert, 'ok', `Pass generated for ${selectedStudent.name}.`);
+    }
 
-    let current = null;
+    nameInput.addEventListener('input', () => {
+      if (!selectedStudent) updatePreview({ name: nameInput.value.trim() });
+      else {
+        selectedStudent = null;
+        renderStudentList();
+        updatePreview({ name: nameInput.value.trim() });
+      }
+    });
+
+    searchInput.addEventListener('input', renderStudentList);
 
     $('passForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      showAlert('', '');
-      alertBox.className = 'alert';
+      clearAlert(formAlert);
 
       const payload = {
-        name: $('name').value.trim(),
+        name: nameInput.value.trim(),
         generatePass: true
       };
 
       if (!payload.name) {
-        showAlert('err', 'Student name is required.');
+        showAlert(formAlert, 'err', 'Student name is required.');
         return;
       }
 
@@ -656,60 +761,59 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-
         const data = await res.json();
-        if (!res.ok || !data.success) {
-          showAlert('err', data.error || 'Failed to create entry pass.');
-          return;
-        }
 
-        if (!data.token) {
-          showAlert('err', data.warning || 'Created, but could not generate QR token. Check QR_SECRET in .env.');
+        if (!res.ok || !data.success) {
+          showAlert(formAlert, 'err', data.error || 'Failed to create entry pass.');
           return;
         }
 
         current = data;
-        previewName.textContent = formatPreviewName(data.student?.name || payload.name);
-        qrImg.src = `/api/qr?token=${encodeURIComponent(data.token)}&t=${Date.now()}`;
-
-        downloadBtn.href = `/api/download-pass/${encodeURIComponent(data.student._id)}`;
-        verifyBtn.href = data.verifyUrl;
-        setDisabled(downloadBtn, false);
-        setDisabled(verifyBtn, false);
-        setDisabled(copyBtn, false);
-
-        showAlert(data.warning ? 'err' : 'ok', data.warning || 'Entry pass created and QR generated.');
-        meta.innerHTML = `Student ID: <code>${escapeHtml(data.student._id)}</code><br/>Verify URL: <code>${escapeHtml(data.verifyUrl)}</code>`;
-        await loadPassLibrary(data.student._id);
+        nameInput.value = '';
+        await loadStudents(data.student?._id);
+        showAlert(formAlert, data.warning ? 'err' : 'ok', data.warning || 'Student created and pass generated.');
       } catch (err) {
-        showAlert('err', err?.message || 'Network error');
+        showAlert(formAlert, 'err', err?.message || 'Network error');
       }
     });
 
     $('uploadBtn').addEventListener('click', async () => {
       const file = $('excelFile').files?.[0];
       if (!file) {
-        bulkMeta.textContent = 'Choose an Excel file first.';
+        bulkMeta.textContent = 'Choose an Excel or CSV file first.';
         return;
       }
 
       const formData = new FormData();
       formData.append('excel', file);
-      bulkMeta.textContent = 'Uploading student list...';
+      bulkMeta.textContent = 'Step 1/2: Uploading student list...';
 
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        });
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
         const data = await res.json();
         if (!res.ok || !data.success) {
           bulkMeta.textContent = data.error || 'Upload failed.';
           return;
         }
 
-        bulkMeta.innerHTML = `Uploaded <code>${escapeHtml(data.insertedCount)}</code> students. Duplicates skipped: <code>${escapeHtml(data.duplicateCount)}</code>.`;
-        await loadPassLibrary();
+        const uploadMsg = `Uploaded ${data.insertedCount} students. Duplicates skipped: ${data.duplicateCount}.`;
+        bulkMeta.textContent = `Step 2/2: ${uploadMsg} Now generating passes...`;
+        $('excelFile').value = '';
+
+        // Automatically generate passes for all students
+        const genRes = await fetch('/api/generate-all', { method: 'POST' });
+        const genData = await genRes.json();
+
+        if (!genRes.ok || !genData.success) {
+          bulkMeta.innerHTML = `${uploadMsg}<br/>Pass generation failed: ${escapeHtml(genData.error || 'Unknown error')}`;
+          await loadStudents();
+          return;
+        }
+
+        const successCount = Array.isArray(genData.results) ? genData.results.filter((item) => item.success).length : 0;
+        const failCount = Array.isArray(genData.results) ? genData.results.length - successCount : 0;
+        bulkMeta.innerHTML = `✅ ${uploadMsg}<br/>Generated <code>${escapeHtml(successCount)}</code> passes.${failCount ? ` Failed: <code>${escapeHtml(failCount)}</code>.` : ''} Ready to download!`;
+        await loadStudents();
       } catch (err) {
         bulkMeta.textContent = err?.message || 'Upload failed.';
       }
@@ -717,7 +821,6 @@
 
     $('generateAllBtn').addEventListener('click', async () => {
       bulkMeta.textContent = 'Generating all passes...';
-
       try {
         const res = await fetch('/api/generate-all', { method: 'POST' });
         const data = await res.json();
@@ -729,51 +832,135 @@
         const successCount = Array.isArray(data.results) ? data.results.filter((item) => item.success).length : 0;
         const failCount = Array.isArray(data.results) ? data.results.length - successCount : 0;
         bulkMeta.innerHTML = `Generated <code>${escapeHtml(successCount)}</code> passes.${failCount ? ` Failed: <code>${escapeHtml(failCount)}</code>.` : ''}`;
-        await loadPassLibrary();
+        await loadStudents(selectedStudent?._id);
       } catch (err) {
         bulkMeta.textContent = err?.message || 'Could not generate all passes.';
       }
     });
 
-    $('refreshListBtn').addEventListener('click', async () => {
-      await loadPassLibrary(selectedStudentId);
-      bulkMeta.textContent = 'Pass list refreshed.';
+    $('refreshBtn').addEventListener('click', async () => {
+      clearAlert(listAlert);
+      await loadStudents(selectedStudent?._id);
+      showAlert(listAlert, 'ok', 'List refreshed.');
+    });
+
+    $('generateSingleBtn').addEventListener('click', async () => {
+      try {
+        await generateSelectedPass();
+      } catch (err) {
+        showAlert(listAlert, 'err', err?.message || 'Could not generate pass.');
+      }
+    });
+
+    $('downloadSingleBtn').addEventListener('click', () => {
+      if (!selectedStudent?._id) {
+        showAlert(listAlert, 'err', 'Select a student first.');
+        return;
+      }
+      window.location.href = `/api/download-pass/${encodeURIComponent(selectedStudent._id)}`;
+    });
+
+    $('downloadAllBtn').addEventListener('click', async () => {
+      bulkMeta.textContent = 'Preparing all passes for download...';
+      try {
+        // First generate any missing passes
+        const genRes = await fetch('/api/generate-all', { method: 'POST' });
+        const genData = await genRes.json();
+        if (!genRes.ok || !genData.success) {
+          bulkMeta.textContent = genData.error || 'Could not generate passes.';
+          return;
+        }
+
+        bulkMeta.textContent = 'Downloading ZIP...';
+        window.location.href = '/api/download-all-passes';
+
+        const successCount = Array.isArray(genData.results) ? genData.results.filter((item) => item.success).length : 0;
+        bulkMeta.textContent = `ZIP download started with ${successCount} passes (PNG format).`;
+        await loadStudents(selectedStudent?._id);
+      } catch (err) {
+        bulkMeta.textContent = err?.message || 'Download failed.';
+      }
+    });
+
+    $('clearSingleBtn').addEventListener('click', async () => {
+      if (!selectedStudent?._id) {
+        showAlert(listAlert, 'err', 'Select a student first.');
+        return;
+      }
+
+      const ok = window.confirm(`Delete ${selectedStudent.name}?`);
+      if (!ok) return;
+
+      try {
+        const res = await fetch(`/api/student/${encodeURIComponent(selectedStudent._id)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          showAlert(listAlert, 'err', data.error || 'Could not delete student.');
+          return;
+        }
+
+        selectedStudent = null;
+        current = null;
+        await loadStudents();
+        showAlert(listAlert, 'ok', 'Student removed.');
+      } catch (err) {
+        showAlert(listAlert, 'err', err?.message || 'Could not delete student.');
+      }
     });
 
     $('clearAllBtn').addEventListener('click', async () => {
-      const ok = window.confirm('Delete all students from list?');
+      const ok = window.confirm('Delete all students and generated pass records?');
       if (!ok) return;
 
       try {
         const res = await fetch('/api/students', { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok || !data.success) {
-          bulkMeta.textContent = data.error || 'Could not clear list.';
+          showAlert(listAlert, 'err', data.error || 'Could not clear list.');
           return;
         }
-        selectedStudentId = null;
-        await loadPassLibrary();
-        bulkMeta.textContent = 'All students removed from list.';
+
+        selectedStudent = null;
+        current = null;
+        await loadStudents();
+        updatePreview(null);
+        showAlert(listAlert, 'ok', 'All students removed.');
       } catch (err) {
-        bulkMeta.textContent = err?.message || 'Could not clear list.';
+        showAlert(listAlert, 'err', err?.message || 'Could not clear list.');
       }
     });
 
-    copyBtn.addEventListener('click', async () => {
-      if (!current?.verifyUrl) return;
+    $('copyBtn').addEventListener('click', async () => {
+      const verifyUrl = selectedStudent?.passToken
+        ? `${window.location.origin}/student.html?token=${selectedStudent.passToken}`
+        : current?.verifyUrl || '';
+
+      if (!verifyUrl) {
+        showAlert(listAlert, 'err', 'No verify link available.');
+        return;
+      }
 
       try {
-        await navigator.clipboard.writeText(current.verifyUrl);
-        showAlert('ok', 'Verify link copied.');
+        await navigator.clipboard.writeText(verifyUrl);
+        showAlert(listAlert, 'ok', 'Verify link copied.');
       } catch {
-        showAlert('err', 'Could not copy.');
+        showAlert(listAlert, 'err', 'Could not copy verify link.');
       }
+    });
+
+    $('refreshPreviewBtn').addEventListener('click', () => {
+      updatePreview(selectedStudent);
     });
 
     setDisabled(downloadBtn, true);
     setDisabled(verifyBtn, true);
     setDisabled(copyBtn, true);
-    loadPassLibrary();
+    setPlaceholderQr();
+
+    loadStudents().catch(() => {
+      studentList.innerHTML = '<div class="empty">Could not load students.</div>';
+      updatePreview(null);
+    });
   </script>
 </body>
 </html>

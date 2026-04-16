@@ -349,18 +349,32 @@ async function generateEntryPassForStudent(student) {
   const width = meta.width || 1600;
   const height = meta.height || 607;
 
-  const rawName = (student.name || '').toUpperCase();
-  const nameLines = wrapTextIntoLines(rawName, 12, 2).map(escapeSvgText);
-  const longestNameLine = nameLines.reduce((max, line) => Math.max(max, line.length), 0);
-  const nameFontSize = longestNameLine > 10 ? 28 : nameLines.length > 1 ? 32 : 36;
-  const nameLineHeight = nameFontSize + 6;
-  const nameX = 206;
-  const nameY = 276;
+  // White left panel visual center (slightly left of mathematical center)
+  // CSS preview uses: name left=10%, QR left=4.75%
+  const panelCenterX = 160;  // 10% of 1600 = 160px
 
-  const qrBoxLeft = 56;
-  const qrBoxTop = 356;
-  const qrBoxSize = 288;
-  const qrPadding = 4;
+  const rawName = (student.name || '').toUpperCase();
+  const nameLines = wrapTextIntoLines(rawName, 14, 2).map(escapeSvgText);
+  const longestNameLine = nameLines.reduce((max, line) => Math.max(max, line.length), 0);
+
+  // Dynamic font sizing - larger for professional look on 1600px canvas
+  let nameFontSize;
+  if (longestNameLine > 12) nameFontSize = 24;
+  else if (longestNameLine > 8) nameFontSize = 26;
+  else if (nameLines.length > 1) nameFontSize = 28;
+  else nameFontSize = 30;
+
+  const nameLineHeight = nameFontSize + 6;
+  const nameX = panelCenterX;  // centered in white panel (160px = 10%)
+  // Position name below the template's ENTRY/PASS text
+  const nameBlockHeight = nameLines.length * nameLineHeight;
+  const nameY = 340;  // below PASS text
+
+  // QR code centered below the name, aligned with name center
+  const qrBoxSize = 170;
+  const qrBoxLeft = Math.round(panelCenterX - qrBoxSize / 2); // centered = 75px (4.69%)
+  const qrBoxTop = 400;  // below name, bottom at 400+170=570 (within 607)
+  const qrPadding = 3;
   const qrLeft = qrBoxLeft + qrPadding;
   const qrTop = qrBoxTop + qrPadding;
   const qrSize = qrBoxSize - (qrPadding * 2);
@@ -459,13 +473,19 @@ async function downloadPassById(req, res) {
     let filename = student.cardPath;
     const hasFile = filename && fs.existsSync(path.join('generated', filename));
     if (!hasFile) {
-      filename = (await generateEntryPassForStudent(student)).filename;
+      const result = await generateEntryPassForStudent(student);
+      filename = result.filename;
     }
 
-    const filePath = path.join('generated', filename);
-    const pretty = sanitizeFileName(student.name || 'student');
-    return res.download(filePath, `${pretty}_entry-pass.png`);
+    const filePath = path.resolve('generated', filename);
+    const pretty = sanitizeFileName(student.name || 'student') || 'student';
+    const downloadName = `${pretty}_entry-pass.png`;
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+    return res.sendFile(filePath);
   } catch (err) {
+    console.error('Download error:', err);
     return res.status(500).json({ error: err.message });
   }
 }
@@ -476,12 +496,22 @@ app.get('/api/download-card/:id', downloadPassById);
 // GET: Download all entry passes as ZIP (alias: /api/download-all-cards)
 async function downloadAllPasses(req, res) {
   try {
-    const students = await Student.find();
+    let students = await Student.find();
     if (!students.length) return res.status(404).json({ error: 'No students found' });
 
+    // Generate passes for any students missing them
+    let needsReload = false;
     for (const student of students) {
       const fileExists = student.cardPath && fs.existsSync(path.join('generated', student.cardPath));
-      if (!fileExists) await generateEntryPassForStudent(student);
+      if (!fileExists) {
+        await generateEntryPassForStudent(student);
+        needsReload = true;
+      }
+    }
+
+    // Reload students to get updated cardPath values after generation
+    if (needsReload) {
+      students = await Student.find();
     }
 
     res.setHeader('Content-Type', 'application/zip');
@@ -494,9 +524,11 @@ async function downloadAllPasses(req, res) {
     archive.pipe(res);
 
     for (const student of students) {
+      if (!student.cardPath) continue;
       const absPath = path.join('generated', student.cardPath);
+      if (!fs.existsSync(absPath)) continue;
       const pretty = sanitizeFileName(student.name || 'student');
-      archive.file(absPath, { name: `${pretty}_${student._id}_entry-pass.png` });
+      archive.file(absPath, { name: `${pretty}_entry-pass.png` });
     }
 
     await archive.finalize();
@@ -507,6 +539,26 @@ async function downloadAllPasses(req, res) {
 
 app.get('/api/download-all-passes', downloadAllPasses);
 app.get('/api/download-all-cards', downloadAllPasses);
+
+// DELETE: Clear single student
+app.delete('/api/student/:id', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ success: false, error: 'Student not found' });
+
+    if (student.cardPath) {
+      const filePath = path.join('generated', student.cardPath);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await Student.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: 'Student deleted' });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // DELETE: Clear all students
 app.delete('/api/students', async (req, res) => {

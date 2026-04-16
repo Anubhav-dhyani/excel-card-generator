@@ -3,230 +3,711 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pass Library</title>
+  <title>Pass Library – Entry Pass Studio</title>
+  <meta name="description" content="Browse, search, and manage all generated entry passes in one structured library view." />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b0b0c;
+      --bg: #09090b;
       --panel: rgba(255, 255, 255, 0.06);
-      --text: rgba(255, 255, 255, 0.9);
-      --muted: rgba(255, 255, 255, 0.65);
-      --border: rgba(255, 255, 255, 0.14);
-      --accent: rgba(239, 68, 68, 0.25);
+      --panel-strong: rgba(255, 255, 255, 0.09);
+      --text: rgba(255, 255, 255, 0.93);
+      --muted: rgba(255, 255, 255, 0.55);
+      --border: rgba(255, 255, 255, 0.12);
+      --border-hover: rgba(255, 255, 255, 0.22);
+      --accent: #ef4444;
+      --accent-soft: rgba(239, 68, 68, 0.18);
+      --accent-border: rgba(239, 68, 68, 0.4);
+      --ok: #22c55e;
+      --ok-soft: rgba(34, 197, 94, 0.14);
+      --ok-border: rgba(34, 197, 94, 0.35);
+      --warn: #f59e0b;
+      --warn-soft: rgba(245, 158, 11, 0.14);
+      --warn-border: rgba(245, 158, 11, 0.35);
+      --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+      --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.3);
     }
 
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
     body {
-      margin: 0;
+      min-height: 100vh;
       font-family: 'Geist', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       background:
-        radial-gradient(1200px 800px at 20% 10%, rgba(239, 68, 68, 0.25), transparent 50%),
-        radial-gradient(1000px 700px at 80% 0%, rgba(168, 85, 247, 0.14), transparent 50%),
+        radial-gradient(1200px 800px at 10% 8%, rgba(239, 68, 68, 0.18), transparent 48%),
+        radial-gradient(1200px 900px at 85% 10%, rgba(168, 85, 247, 0.14), transparent 46%),
+        radial-gradient(1000px 900px at 70% 100%, rgba(59, 130, 246, 0.10), transparent 40%),
         var(--bg);
       color: var(--text);
     }
 
-    .wrap {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 24px 16px 30px;
+    /* ── Search Header ── */
+    .search-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(9, 9, 11, 0.82);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
     }
 
-    .head {
+    .search-header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 14px;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 0;
       flex-wrap: wrap;
     }
 
-    .title {
-      margin: 0;
-      font-size: 24px;
+    .search-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .search-brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #b91c1c);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .search-brand-text {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 240px;
+      max-width: 520px;
+      position: relative;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 11px 14px 11px 42px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--border-hover);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+    }
+
+    .search-box input::placeholder {
+      color: var(--muted);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-left: auto;
+    }
+
+    .header-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .header-stat .count {
+      color: var(--text);
       font-weight: 800;
     }
 
-    .sub {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
+    /* ── Buttons ── */
     .btn {
       appearance: none;
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 10px 12px;
-      font-weight: 650;
-      color: rgba(255,255,255,0.92);
+      padding: 9px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text);
       background: rgba(255, 255, 255, 0.06);
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      font-family: inherit;
     }
 
-    .btn:hover { background: rgba(255, 255, 255, 0.1); }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
-      gap: 14px;
-      align-items: start;
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.11);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
     }
 
-    @media (max-width: 920px) {
-      .layout { grid-template-columns: 1fr; }
+    .btn:active { transform: translateY(0); }
+
+    .btn.primary {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.3), rgba(239, 68, 68, 0.15));
+      border-color: var(--accent-border);
     }
 
-    .card {
-      background: linear-gradient(180deg, var(--panel), rgba(255, 255, 255, 0.03));
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
+    .btn.primary:hover {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.4), rgba(239, 68, 68, 0.22));
     }
 
-    .tools {
-      display: grid;
+    .btn.danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn.small {
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 10px;
+    }
+
+    .btn[disabled] {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* ── Page Layout ── */
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+    }
+
+    /* ── Filter Bar ── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
       gap: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
 
-    input {
-      width: 100%;
-      padding: 10px 12px;
+    .filter-tab {
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .filter-tab:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+    }
+
+    .filter-tab.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: var(--text);
+    }
+
+    .filter-spacer {
+      flex: 1;
+    }
+
+    .sort-select {
+      padding: 7px 12px;
       border-radius: 12px;
       border: 1px solid var(--border);
       background: rgba(0, 0, 0, 0.25);
       color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
       outline: none;
-      font-size: 14px;
+      cursor: pointer;
     }
 
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
+    /* ── Content Grid ── */
+    .content-layout {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+      align-items: start;
     }
 
-    .list {
+    @media (max-width: 1100px) {
+      .content-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Template Cards Grid ── */
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .template-card {
+      background: linear-gradient(180deg, var(--panel), rgba(255, 255, 255, 0.02));
       border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .template-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .template-card.active {
+      border-color: var(--accent-border);
+      box-shadow: 0 0 0 1px var(--accent-border), var(--shadow-sm);
+    }
+
+    .card-thumb {
+      width: 100%;
+      aspect-ratio: 1600 / 607;
+      background: #111;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-thumb .placeholder {
+      display: grid;
+      place-items: center;
+      width: 100%;
+      height: 100%;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .card-status-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .card-status-badge.ready {
+      background: var(--ok-soft);
+      border: 1px solid var(--ok-border);
+      color: #bbf7d0;
+    }
+
+    .card-status-badge.pending {
+      background: var(--warn-soft);
+      border: 1px solid var(--warn-border);
+      color: #fde68a;
+    }
+
+    .card-info {
+      padding: 12px 14px;
+    }
+
+    .card-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-meta {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-meta .dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    /* ── Preview Sidebar ── */
+    .preview-panel {
+      position: sticky;
+      top: 80px;
+      background: linear-gradient(180deg, var(--panel), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .preview-header {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    }
+
+    .preview-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .preview-body {
+      padding: 16px 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .preview-img-wrap {
       border-radius: 12px;
       overflow: hidden;
-      max-height: 62vh;
-      overflow-y: auto;
-      background: rgba(0, 0, 0, 0.18);
-    }
-
-    .item {
-      width: 100%;
-      text-align: left;
-      border: 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      background: transparent;
-      color: var(--text);
-      padding: 10px 12px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    .item:hover { background: rgba(255,255,255,0.06); }
-    .item.active { background: var(--accent); }
-
-    .pager {
-      margin-top: 10px;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    }
-
-    .preview {
-      display: grid;
-      gap: 10px;
-    }
-
-    .preview img {
-      width: 100%;
-      border-radius: 10px;
       border: 1px solid var(--border);
-      background: #111;
+      background: #0d0d0d;
     }
 
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
+    .preview-img-wrap img {
+      width: 100%;
+      display: block;
+    }
+
+    .preview-empty {
+      padding: 40px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .preview-empty-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
-    code {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.16);
-      border-radius: 8px;
-      padding: 2px 7px;
+    .detail-item {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .detail-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      font-weight: 600;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    .detail-value code {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-size: 11px;
+    }
+
+    .preview-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .preview-actions .full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* ── Pagination ── */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .page-info {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 0 12px;
+      font-weight: 600;
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+    }
+
+    .empty-state h3 {
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .toast.ok {
+      background: rgba(34, 197, 94, 0.16);
+      border: 1px solid var(--ok-border);
+    }
+
+    .toast.err {
+      background: rgba(239, 68, 68, 0.16);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .search-header-inner { padding: 12px 0; }
+      .search-brand-text { display: none; }
+      .page { padding: 16px 12px 30px; }
+      .templates-grid { grid-template-columns: 1fr 1fr; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .preview-actions { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 480px) {
+      .templates-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .template-card {
+      animation: fadeInUp 0.3s ease backwards;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="head">
-      <div>
-        <h1 class="title">Pass Library</h1>
-        <p class="sub">Designed for large volume: search, paginate, preview, and manage passes.</p>
+
+  <!-- Sticky Search Header -->
+  <header class="search-header" id="searchHeader">
+    <div class="search-header-inner">
+      <a class="search-brand" href="/index.html" style="text-decoration:none;color:inherit">
+        <div class="search-brand-icon">EP</div>
+        <span class="search-brand-text">Pass Library</span>
+      </a>
+
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="searchInput" type="search" autocomplete="off" placeholder="Search templates by student name..." />
       </div>
-      <div class="actions">
-        <a class="btn" href="/index.html">Back to Generator</a>
-        <button class="btn" id="refreshBtn" type="button">Refresh</button>
-        <button class="btn" id="clearAllBtn" type="button">Clear All List</button>
+
+      <div class="header-actions">
+        <div class="header-stat">
+          <span>Total:</span>
+          <span class="count" id="totalCount">0</span>
+        </div>
+        <div class="header-stat">
+          <span>Generated:</span>
+          <span class="count" id="generatedCount">0</span>
+        </div>
+        <a class="btn small" href="/index.html">← Back to Studio</a>
       </div>
     </div>
+  </header>
 
-    <div class="layout">
-      <section class="card">
-        <div class="tools">
-          <input id="searchInput" placeholder="Search by student name..." />
-          <div class="row">
-            <div class="sub" id="countInfo">Loading...</div>
-            <div class="sub" id="pageInfo"></div>
+  <div class="page">
+    <!-- Filter Bar -->
+    <nav class="filter-bar">
+      <button class="filter-tab active" data-filter="all" id="filterAll">All</button>
+      <button class="filter-tab" data-filter="ready" id="filterReady">Pass Ready</button>
+      <button class="filter-tab" data-filter="pending" id="filterPending">Pending</button>
+      <div class="filter-spacer"></div>
+      <select class="sort-select" id="sortSelect">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="name-asc">Name A → Z</option>
+        <option value="name-desc">Name Z → A</option>
+      </select>
+      <button class="btn small" id="refreshBtn" type="button">Refresh</button>
+      <button class="btn small danger" id="clearAllBtn" type="button">Clear All</button>
+    </nav>
+
+    <!-- Content -->
+    <div class="content-layout">
+      <!-- Template Cards -->
+      <div>
+        <div class="templates-grid" id="templatesGrid"></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+      <!-- Preview Sidebar -->
+      <aside class="preview-panel" id="previewPanel">
+        <div class="preview-header">
+          <div class="preview-title">Template Preview</div>
+        </div>
+        <div class="preview-body" id="previewBody">
+          <div class="preview-empty">
+            <div class="preview-empty-icon">🎫</div>
+            <p>Select a template card to preview<br/>its details and generated pass here.</p>
           </div>
         </div>
-        <div class="list" id="list"></div>
-        <div class="pager">
-          <button class="btn" id="prevBtn" type="button">Previous</button>
-          <button class="btn" id="nextBtn" type="button">Next</button>
-        </div>
-      </section>
-
-      <section class="card preview" id="preview">
-        <p class="sub">Select a student to see pass details.</p>
-      </section>
+      </aside>
     </div>
   </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
 
   <script>
     const $ = (id) => document.getElementById(id);
 
-    const listEl = $('list');
-    const previewEl = $('preview');
     const searchInput = $('searchInput');
-    const countInfo = $('countInfo');
-    const pageInfo = $('pageInfo');
-    const prevBtn = $('prevBtn');
-    const nextBtn = $('nextBtn');
+    const templatesGrid = $('templatesGrid');
+    const paginationEl = $('pagination');
+    const previewBody = $('previewBody');
+    const totalCountEl = $('totalCount');
+    const generatedCountEl = $('generatedCount');
+    const toastEl = $('toast');
+    const sortSelect = $('sortSelect');
 
     let students = [];
     let filtered = [];
     let selectedId = null;
     let page = 1;
-    const pageSize = 50;
+    let activeFilter = 'all';
+    const pageSize = 24;
 
     function escapeHtml(text) {
       const div = document.createElement('div');
@@ -234,12 +715,35 @@
       return div.innerHTML;
     }
 
-    function applyFilter() {
+    function showToast(type, msg) {
+      toastEl.className = `toast show ${type}`;
+      toastEl.textContent = msg;
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => { toastEl.className = 'toast'; }, 3500);
+    }
+
+    function applyFilterAndSort() {
       const q = (searchInput.value || '').trim().toLowerCase();
-      filtered = q
-        ? students.filter((s) => String(s.name || '').toLowerCase().includes(q))
-        : [...students];
-      if (page > getTotalPages()) page = Math.max(1, getTotalPages());
+
+      filtered = students.filter(s => {
+        const nameMatch = !q || String(s.name || '').toLowerCase().includes(q);
+        if (!nameMatch) return false;
+        if (activeFilter === 'ready') return !!s.cardPath;
+        if (activeFilter === 'pending') return !s.cardPath;
+        return true;
+      });
+
+      const sort = sortSelect.value;
+      filtered.sort((a, b) => {
+        if (sort === 'newest') return new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0);
+        if (sort === 'oldest') return new Date(a.uploadedAt || 0) - new Date(b.uploadedAt || 0);
+        if (sort === 'name-asc') return (a.name || '').localeCompare(b.name || '');
+        if (sort === 'name-desc') return (b.name || '').localeCompare(a.name || '');
+        return 0;
+      });
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (page > totalPages) page = totalPages;
     }
 
     function getTotalPages() {
@@ -251,131 +755,244 @@
       return filtered.slice(start, start + pageSize);
     }
 
-    function renderPreview(student) {
-      if (!student) {
-        previewEl.innerHTML = '<p class="sub">Select a student to see pass details.</p>';
-        return;
-      }
-
-      const passImg = student.cardPath
-        ? `/generated/${encodeURIComponent(student.cardPath)}?t=${Date.now()}`
-        : '';
-      const verifyUrl = student.passToken
-        ? `/student.html?token=${encodeURIComponent(student.passToken)}`
-        : '';
-
-      previewEl.innerHTML = `
-        <h3 style="margin:0;">${escapeHtml(student.name || 'Unnamed')}</h3>
-        <p class="sub">Student ID: <code>${escapeHtml(student._id || '')}</code></p>
-        ${passImg ? `<img src="${passImg}" alt="Pass image for ${escapeHtml(student.name || 'student')}" />` : '<p class="sub">Pass not generated yet.</p>'}
-        <div class="actions">
-          <button class="btn" id="generateBtn" type="button">Generate / Refresh Pass</button>
-          <a class="btn" href="/api/download-pass/${encodeURIComponent(student._id)}">Download Pass</a>
-          ${verifyUrl ? `<a class="btn" href="${verifyUrl}" target="_blank" rel="noreferrer">Open Verified</a>` : ''}
-        </div>
-      `;
-
-      const generateBtn = $('generateBtn');
-      if (generateBtn) {
-        generateBtn.addEventListener('click', async () => {
-          generateBtn.disabled = true;
-          try {
-            const res = await fetch(`/api/generate-pass/${encodeURIComponent(student._id)}`, { method: 'POST' });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate');
-            await loadStudents(student._id);
-          } catch (err) {
-            previewEl.insertAdjacentHTML('beforeend', `<p class="sub">${escapeHtml(err.message || 'Failed to generate')}</p>`);
-          } finally {
-            generateBtn.disabled = false;
-          }
-        });
-      }
+    function formatDate(dateStr) {
+      if (!dateStr) return 'N/A';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
-    function renderList() {
+    function renderGrid() {
       const items = getPageItems();
-      countInfo.textContent = `${filtered.length} result(s)`;
-      pageInfo.textContent = `Page ${page} / ${getTotalPages()}`;
-      prevBtn.disabled = page <= 1;
-      nextBtn.disabled = page >= getTotalPages();
+      const tCount = students.length;
+      const gCount = students.filter(s => s.cardPath).length;
+
+      totalCountEl.textContent = tCount;
+      generatedCountEl.textContent = gCount;
 
       if (!items.length) {
-        listEl.innerHTML = '<div class="sub" style="padding:10px 12px;">No passes found.</div>';
-        renderPreview(null);
+        templatesGrid.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No Templates Found</h3>
+            <p>${students.length ? 'No results match your search or filter.' : 'No students have been added yet.<br/>Go to the Studio to create entry passes.'}</p>
+          </div>
+        `;
+        paginationEl.innerHTML = '';
         return;
       }
 
-      listEl.innerHTML = items.map((s) => `
-        <button class="item ${s._id === selectedId ? 'active' : ''}" data-id="${escapeHtml(s._id)}">
-          ${escapeHtml(s.name || 'Unnamed')}
-        </button>
-      `).join('');
+      templatesGrid.innerHTML = items.map((s, i) => {
+        const hasPass = !!s.cardPath;
+        const imgSrc = hasPass ? `/generated/${encodeURIComponent(s.cardPath)}?t=${Date.now()}` : '';
+        const delay = Math.min(i * 0.04, 0.8);
 
-      listEl.querySelectorAll('.item').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          selectedId = btn.getAttribute('data-id');
-          renderList();
-          renderPreview(filtered.find((s) => s._id === selectedId) || null);
+        return `
+          <div class="template-card ${s._id === selectedId ? 'active' : ''}" data-id="${escapeHtml(s._id)}" style="animation-delay:${delay}s">
+            <div class="card-thumb">
+              ${hasPass ? `<img src="${imgSrc}" alt="Pass for ${escapeHtml(s.name)}" loading="lazy" />` : '<div class="placeholder">No Pass Generated</div>'}
+              <span class="card-status-badge ${hasPass ? 'ready' : 'pending'}">${hasPass ? 'Ready' : 'Pending'}</span>
+            </div>
+            <div class="card-info">
+              <div class="card-name">${escapeHtml(s.name || 'Unnamed')}</div>
+              <div class="card-meta">
+                <span>${formatDate(s.uploadedAt)}</span>
+                ${s.passToken ? '<span class="dot"></span><span>QR Active</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      templatesGrid.querySelectorAll('.template-card').forEach(card => {
+        card.addEventListener('click', () => {
+          selectedId = card.getAttribute('data-id');
+          renderGrid();
+          renderPreview(filtered.find(s => s._id === selectedId) || null);
         });
       });
 
-      const selected = filtered.find((s) => s._id === selectedId) || items[0];
-      selectedId = selected?._id || null;
-      renderPreview(selected || null);
-      listEl.querySelector(`[data-id="${selectedId}"]`)?.classList.add('active');
+      // Pagination
+      const totalPages = getTotalPages();
+      if (totalPages <= 1) {
+        paginationEl.innerHTML = '';
+        return;
+      }
+
+      paginationEl.innerHTML = `
+        <button class="btn small" id="prevBtn" ${page <= 1 ? 'disabled' : ''}>← Previous</button>
+        <span class="page-info">Page ${page} of ${totalPages}</span>
+        <button class="btn small" id="nextBtn" ${page >= totalPages ? 'disabled' : ''}>Next →</button>
+      `;
+
+      $('prevBtn')?.addEventListener('click', () => { if (page > 1) { page--; renderGrid(); } });
+      $('nextBtn')?.addEventListener('click', () => { if (page < totalPages) { page++; renderGrid(); } });
+    }
+
+    function renderPreview(student) {
+      if (!student) {
+        previewBody.innerHTML = `
+          <div class="preview-empty">
+            <div class="preview-empty-icon">🎫</div>
+            <p>Select a template card to preview<br/>its details and generated pass here.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const hasPass = !!student.cardPath;
+      const imgSrc = hasPass ? `/generated/${encodeURIComponent(student.cardPath)}?t=${Date.now()}` : '';
+      const verifyUrl = student.passToken ? `/student.html?token=${encodeURIComponent(student.passToken)}` : '';
+
+      previewBody.innerHTML = `
+        ${hasPass ? `
+          <div class="preview-img-wrap">
+            <img src="${imgSrc}" alt="Entry pass for ${escapeHtml(student.name)}" />
+          </div>
+        ` : `
+          <div class="preview-empty" style="padding:30px 16px">
+            <div class="preview-empty-icon">⏳</div>
+            <p>Pass not generated yet.<br/>Click "Generate Pass" below.</p>
+          </div>
+        `}
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Student Name</div>
+            <div class="detail-value">${escapeHtml(student.name || 'Unnamed')}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value">${hasPass ? '✅ Pass Ready' : '⏳ Pending'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Student ID</div>
+            <div class="detail-value"><code>${escapeHtml(student._id || '-')}</code></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Created</div>
+            <div class="detail-value">${formatDate(student.uploadedAt)}</div>
+          </div>
+          ${student.schoolName ? `
+          <div class="detail-item" style="grid-column:1/-1">
+            <div class="detail-label">School</div>
+            <div class="detail-value">${escapeHtml(student.schoolName)}</div>
+          </div>` : ''}
+          ${student.passToken ? `
+          <div class="detail-item" style="grid-column:1/-1">
+            <div class="detail-label">Verify URL</div>
+            <div class="detail-value" style="font-size:11px;word-break:break-all">${escapeHtml(window.location.origin + verifyUrl)}</div>
+          </div>` : ''}
+        </div>
+
+        <div class="preview-actions">
+          <button class="btn primary" id="generateBtn" type="button">${hasPass ? 'Regenerate Pass' : 'Generate Pass'}</button>
+          <a class="btn" href="/api/download-pass/${encodeURIComponent(student._id)}" ${!hasPass ? 'style="pointer-events:none;opacity:0.4"' : ''}>Download</a>
+          ${verifyUrl ? `<a class="btn" href="${verifyUrl}" target="_blank" rel="noreferrer">Verify Pass</a>` : ''}
+          <button class="btn danger" id="deleteBtn" type="button">Delete</button>
+        </div>
+      `;
+
+      $('generateBtn')?.addEventListener('click', async () => {
+        const btn = $('generateBtn');
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+        try {
+          const res = await fetch('/api/generate-pass/' + encodeURIComponent(student._id), { method: 'POST' });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
+          showToast('ok', `Pass generated for ${student.name}`);
+          await loadStudents(student._id);
+        } catch (err) {
+          showToast('err', err.message || 'Generation failed');
+          btn.disabled = false;
+          btn.textContent = 'Generate Pass';
+        }
+      });
+
+      $('deleteBtn')?.addEventListener('click', async () => {
+        if (!confirm(`Delete ${student.name}?`)) return;
+        try {
+          const res = await fetch('/api/student/' + encodeURIComponent(student._id), { method: 'DELETE' });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
+          selectedId = null;
+          showToast('ok', `${student.name} deleted`);
+          await loadStudents();
+        } catch (err) {
+          showToast('err', err.message || 'Could not delete');
+        }
+      });
     }
 
     async function loadStudents(preferId = null) {
-      const res = await fetch('/api/students');
-      const data = await res.json();
-      students = Array.isArray(data) ? data : [];
-      if (preferId) selectedId = preferId;
-      applyFilter();
-      renderList();
+      try {
+        const res = await fetch('/api/students');
+        const data = await res.json();
+        students = Array.isArray(data) ? data : [];
+        if (preferId) selectedId = preferId;
+        applyFilterAndSort();
+        renderGrid();
+
+        const selected = filtered.find(s => s._id === selectedId);
+        renderPreview(selected || null);
+      } catch {
+        templatesGrid.innerHTML = '<div class="empty-state"><h3>Could not load data</h3><p>Check server connection and try again.</p></div>';
+      }
     }
 
+    // Event Listeners
     searchInput.addEventListener('input', () => {
       page = 1;
-      applyFilter();
-      renderList();
+      applyFilterAndSort();
+      renderGrid();
     });
 
-    prevBtn.addEventListener('click', () => {
-      if (page > 1) {
-        page -= 1;
-        renderList();
-      }
+    sortSelect.addEventListener('change', () => {
+      page = 1;
+      applyFilterAndSort();
+      renderGrid();
     });
 
-    nextBtn.addEventListener('click', () => {
-      if (page < getTotalPages()) {
-        page += 1;
-        renderList();
-      }
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeFilter = tab.getAttribute('data-filter');
+        page = 1;
+        applyFilterAndSort();
+        renderGrid();
+      });
     });
 
     $('refreshBtn').addEventListener('click', async () => {
+      showToast('ok', 'Refreshing...');
       await loadStudents(selectedId);
     });
 
     $('clearAllBtn').addEventListener('click', async () => {
-      const ok = window.confirm('Delete all students from list?');
-      if (!ok) return;
-      const res = await fetch('/api/students', { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        alert(data.error || 'Could not clear list.');
-        return;
+      if (!confirm('Delete ALL students and their generated passes?')) return;
+      try {
+        const res = await fetch('/api/students', { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Failed');
+        selectedId = null;
+        page = 1;
+        showToast('ok', 'All students cleared');
+        await loadStudents();
+      } catch (err) {
+        showToast('err', err.message || 'Could not clear');
       }
-      selectedId = null;
-      page = 1;
-      await loadStudents();
     });
 
-    loadStudents().catch(() => {
-      listEl.innerHTML = '<div class="sub" style="padding:10px 12px;">Could not load students.</div>';
+    // Keyboard shortcut: focus search with /
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+      }
     });
+
+    loadStudents();
   </script>
 </body>
 </html>
