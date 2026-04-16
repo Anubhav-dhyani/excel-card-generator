@@ -5,6 +5,7 @@ const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const QRCode = require('qrcode');
 const sharp = require("sharp");
 const archiver = require('archiver');
@@ -24,13 +25,14 @@ mongoose.connect(process.env.MONGODB_URI)
 // Schema
 const StudentSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  schoolName: { type: String, required: true },
+  schoolName: { type: String, default: '' },
   rollNo: String,
   class: String,
   email: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
   phone: { type: String, trim: true, unique: true, sparse: true },
   address: String,
   uploadedAt: { type: Date, default: Date.now },
+  passToken: { type: String, index: true },
   cardGenerated: { type: Boolean, default: false },
   cardPath: String
 });
@@ -55,6 +57,112 @@ function normalizeEmail(v = '') {
 function normalizePhone(v = '') {
   return String(v).replace(/\D/g, '');
 }
+
+const QR_SECRET = process.env.QR_SECRET;
+if (!QR_SECRET) {
+  console.warn('⚠️ QR_SECRET is not set. Set QR_SECRET in .env for signed/verified QR codes.');
+}
+
+function base64urlEncode(buf) {
+  return Buffer.from(buf)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function base64urlDecode(input) {
+  const str = String(input || '');
+  if (!/^[A-Za-z0-9_-]+$/.test(str)) {
+    throw new Error('Invalid token encoding');
+  }
+  let b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (b64.length % 4 !== 0) b64 += '=';
+  return Buffer.from(b64, 'base64');
+}
+
+function issuePassToken(studentId) {
+  if (!QR_SECRET) throw new Error('QR_SECRET is not configured');
+  const payload = {
+    sid: String(studentId),
+    iat: Math.floor(Date.now() / 1000)
+  };
+  const payloadB64 = base64urlEncode(JSON.stringify(payload));
+  const sig = crypto.createHmac('sha256', QR_SECRET).update(payloadB64).digest();
+  return `${payloadB64}.${base64urlEncode(sig)}`;
+}
+
+function verifyPassToken(token) {
+  if (!QR_SECRET) throw new Error('QR_SECRET is not configured');
+  const raw = String(token || '');
+  if (!raw || raw.length > 2048) throw new Error('Invalid token');
+
+  const parts = raw.split('.');
+  if (parts.length !== 2) throw new Error('Invalid token');
+
+  const [payloadB64, sigB64] = parts;
+  const sig = base64urlDecode(sigB64);
+  const expected = crypto.createHmac('sha256', QR_SECRET).update(payloadB64).digest();
+
+  if (sig.length !== expected.length || !crypto.timingSafeEqual(sig, expected)) {
+    throw new Error('Invalid token signature');
+  }
+
+  const payloadJson = base64urlDecode(payloadB64).toString('utf8');
+  const payload = JSON.parse(payloadJson);
+  if (!payload || typeof payload.sid !== 'string') throw new Error('Invalid token payload');
+
+  const maxAgeDays = Number(process.env.PASS_TOKEN_MAX_AGE_DAYS || 3650);
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.iat && typeof payload.iat === 'number') {
+    if (payload.iat > now + 300) throw new Error('Invalid token timestamp');
+    const maxAgeSec = Math.max(1, maxAgeDays) * 24 * 60 * 60;
+    if (now - payload.iat > maxAgeSec) throw new Error('Token expired');
+  }
+
+  return payload;
+}
+
+function buildVerificationUrl(token) {
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+  return `${baseUrl}/student.html?token=${encodeURIComponent(token)}`;
+}
+
+// GET: Verified student details via signed token
+app.get('/api/verify', async (req, res) => {
+  try {
+    const token = String(req.query.token || '');
+    const { sid } = verifyPassToken(token);
+
+    const student = await Student.findById(sid);
+    if (!student) return res.status(404).json({ verified: false, error: 'Student not found' });
+
+    return res.json({ verified: true, student });
+  } catch (err) {
+    return res.status(400).json({ verified: false, error: 'Invalid or expired token' });
+  }
+});
+
+// GET: QR code image for a signed token
+app.get('/api/qr', async (req, res) => {
+  try {
+    const token = String(req.query.token || '');
+    verifyPassToken(token);
+
+    const qrData = buildVerificationUrl(token);
+    const qrBuffer = await QRCode.toBuffer(qrData, {
+      width: 768,
+      margin: 0,
+      color: { dark: '#111111', light: '#FFFFFF' }
+    });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(qrBuffer);
+  } catch (err) {
+    return res.status(400).json({ error: 'Invalid token' });
+  }
+});
 
 // POST: Upload Excel
 app.post('/api/upload', upload.single('excel'), async (req, res) => {
@@ -83,7 +191,7 @@ app.post('/api/upload', upload.single('excel'), async (req, res) => {
         phone: phone || undefined,
         address: obj['address'] || obj['city'] || ''
       };
-    }).filter(s => s.name && s.schoolName);
+    }).filter(s => s.name);
 
     // Remove duplicates inside uploaded file
     const seenEmails = new Set();
@@ -231,192 +339,97 @@ function wrapTextIntoLines(value = '', maxCharsPerLine = 14, maxLines = 3) {
   return lines;
 }
 
-async function generateCardForStudent(student) {
-  // 60x80mm at 300 DPI = 708 x 945 px
-  const width = 800;
-  const height = 1045;
+async function generateEntryPassForStudent(student) {
+  const templatePath = path.join(__dirname, 'images', 'templete.webp');
 
-  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-  const qrData = `${baseUrl}/student.html?id=${student._id}`;
+  const token = student.passToken || issuePassToken(student._id.toString());
+  const qrData = buildVerificationUrl(token);
 
-  // QR code size
-  const qrSize = 240;
+  const meta = await sharp(templatePath).metadata();
+  const width = meta.width || 1600;
+  const height = meta.height || 607;
+
+  const rawName = (student.name || '').toUpperCase();
+  const nameLines = wrapTextIntoLines(rawName, 12, 2).map(escapeSvgText);
+  const longestNameLine = nameLines.reduce((max, line) => Math.max(max, line.length), 0);
+  const nameFontSize = longestNameLine > 10 ? 28 : nameLines.length > 1 ? 32 : 36;
+  const nameLineHeight = nameFontSize + 6;
+  const nameX = 206;
+  const nameY = 276;
+
+  const qrBoxLeft = 56;
+  const qrBoxTop = 356;
+  const qrBoxSize = 288;
+  const qrPadding = 4;
+  const qrLeft = qrBoxLeft + qrPadding;
+  const qrTop = qrBoxTop + qrPadding;
+  const qrSize = qrBoxSize - (qrPadding * 2);
   const qrBuffer = await QRCode.toBuffer(qrData, {
     width: qrSize,
-    margin: 1,
-    color: { dark: '#1F2937', light: '#FFFFFF' }
+    margin: 0,
+    color: { dark: '#111111', light: '#FFFFFF' }
   });
 
-  // Escape student data
-  const rawName = (student.name || '').toUpperCase();
-  const nameLines = wrapTextIntoLines(rawName, 14, 3).map(escapeSvgText);
-  const rawSchool = student.schoolName || '';
-  const schoolLines = wrapTextIntoLines(rawSchool, 18, 3).map(escapeSvgText);
-  const rollNo = escapeSvgText(student.rollNo || '');
-  const className = escapeSvgText(student.class || '');
-  const studentId = escapeSvgText(student._id.toString().substring(0, 12).toUpperCase());
-  const nameLineHeight = 72;
-  const schoolLineHeight = 58;
-  const extraNameOffset = (nameLines.length - 1) * nameLineHeight;
-  const extraSchoolOffset = (schoolLines.length - 1) * schoolLineHeight;
-  const nameStartY = 180;
-  const dividerY = 210 + extraNameOffset;
-  const schoolY = 290 + extraNameOffset;
-  const infoY = 370 + extraNameOffset + extraSchoolOffset;
-  const detailsDividerY = 410 + extraNameOffset + extraSchoolOffset;
-  const idBadgeY = 440 + extraNameOffset + extraSchoolOffset;
-  const idTextY = 485 + extraNameOffset + extraSchoolOffset;
-  const scanLabelY = 600 + extraNameOffset + extraSchoolOffset;
-  const qrTop = 620 + extraNameOffset + extraSchoolOffset;
+  const overlaySvg = Buffer.from(`
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <rect x="${qrBoxLeft}" y="${qrBoxTop}" width="${qrBoxSize}" height="${qrBoxSize}" fill="#FFFFFF"/>
+      <rect x="${qrBoxLeft}" y="${qrBoxTop}" width="${qrBoxSize}" height="${qrBoxSize}" fill="none" stroke="#111111" stroke-width="4"/>
 
-  // Layout constants (all coordinates relative to 708x945 white card)
- const cardSvg = Buffer.from(`
-  <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="topBar" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" style="stop-color:#3B27A1;stop-opacity:1" />
-        <stop offset="100%" style="stop-color:#4F3DC7;stop-opacity:1" />
-      </linearGradient>
-    </defs>
-
-    <!-- White background -->
-    <rect width="${width}" height="${height}" fill="#FFFFFF" rx="20"/>
-
-    <!-- Top accent bar -->
-    <rect x="0" y="0" width="${width}" height="18" fill="url(#topBar)"/>
-
-    <!-- PARTICIPANT -->
-    <text x="${width / 2}" y="95"
-          font-family="Arial, sans-serif"
-          font-size="28"
-          font-weight="700"
-          fill="#9CA3AF"
-          text-anchor="middle"
-          letter-spacing="4">PARTICIPANT</text>
-
-    <!-- Name (REDUCED) -->
-    <text x="${width / 2}" y="${nameStartY}"
-          font-family="Arial, sans-serif"
-          font-size="80"
-          font-weight="900"
-          fill="#111827"
-          text-anchor="middle"
-          letter-spacing="1.5">${nameLines.map((line, index) => `<tspan x="${width / 2}" dy="${index === 0 ? 0 : nameLineHeight}">${line}</tspan>`).join('')}</text>
-
-    <!-- Gold divider -->
-    <rect x="70" y="${dividerY}" width="${width - 140}" height="7" fill="#FBBF24" rx="4"/>
-
-    <!-- School (INCREASED) -->
-    <text x="${width / 2}" y="${schoolY}"
-          font-family="Arial, sans-serif"
-          font-size="70"
-          font-weight="800"
-          fill="#111827"
-          text-anchor="middle">${schoolLines.map((line, index) => `<tspan x="${width / 2}" dy="${index === 0 ? 0 : schoolLineHeight}">${line}</tspan>`).join('')}</text>
-
-    <!-- Roll + Class -->
-    ${rollNo ? `
-      <text x="90" y="${infoY}"
+      <text x="${nameX}" y="${nameY}"
             font-family="Arial, sans-serif"
-            font-size="28"
-            fill="#6B7280">Roll No:</text>
-      <text x="260" y="${infoY}"
-            font-family="Arial, sans-serif"
-            font-size="28"
-            font-weight="700"
-            fill="#111827">${rollNo}</text>
-    ` : ''}
+            font-size="${nameFontSize}"
+            font-weight="900"
+            fill="#111111"
+            text-anchor="middle"
+            letter-spacing="0.5">${nameLines
+              .map((line, index) => `<tspan x=\"${nameX}\" dy=\"${index === 0 ? 0 : nameLineHeight}\">${line}</tspan>`)
+              .join('')}</text>
+    </svg>
+  `);
 
-    ${className ? `
-      <text x="${width - 300}" y="${infoY}"
-            font-family="Arial, sans-serif"
-            font-size="28"
-            fill="#6B7280">Class:</text>
-      <text x="${width - 160}" y="${infoY}"
-            font-family="Arial, sans-serif"
-            font-size="28"
-            font-weight="700"
-            fill="#111827">${className}</text>
-    ` : ''}
+  const filename = `pass_${student._id}.png`;
+  const outputPath = path.join('generated', filename);
 
-    <!-- Divider -->
-    <line x1="70" y1="${detailsDividerY}" x2="${width - 70}" y2="${detailsDividerY}"
-          stroke="#E5E7EB" stroke-width="3"/>
+  await sharp(templatePath)
+    .composite([
+      { input: overlaySvg, top: 0, left: 0 },
+      { input: qrBuffer, top: qrTop, left: qrLeft }
+    ])
+    .png({ quality: 100 })
+    .toFile(outputPath);
 
-    <!-- ID Badge -->
-    <rect x="${(width - 480) / 2}" y="${idBadgeY}" width="480" height="70"
-          fill="#F3F4F6" rx="12"/>
-    <text x="${width / 2}" y="${idTextY}"
-          font-family="Courier New, monospace"
-          font-size="60"
-          font-weight="700"
-          fill="#374151"
-          text-anchor="middle"
-          letter-spacing="4">ID: ${studentId}</text>
+  await Student.findByIdAndUpdate(student._id, {
+    passToken: token,
+    cardGenerated: true,
+    cardPath: filename
+  });
 
-    <!-- Scan label -->
-    <text x="${width / 2}" y="${scanLabelY}"
-          font-family="Arial, sans-serif"
-          font-size="50"
-          font-weight="700"
-          fill="#9CA3AF"
-          text-anchor="middle"
-          letter-spacing="3">SCAN FOR DETAILS</text>
-
-    <!-- Bottom accent -->
-    <rect x="0" y="${height - 18}" width="${width}" height="25" fill="url(#topBar)"/>
-  </svg>
-`);
-
-  // QR code centered horizontally, below the scan label
-
-
-// Center QR
-const qrLeft = Math.round((width - qrSize) / 2);
-const filename = `card_${student._id}.png`;
-const outputPath = path.join('generated', filename);
-
-await sharp({
-  create: {
-    width,
-    height,
-    channels: 4,
-    background: { r: 255, g: 255, b: 255, alpha: 255 }
-  }
-})
-  .composite([
-    { input: cardSvg, top: 0, left: 0 },
-    { input: qrBuffer, top: qrTop, left: qrLeft }
-  ])
-  .png({
-    quality: 100,
-    density: 300
-  })
-  .toFile(outputPath);
-
-await Student.findByIdAndUpdate(student._id, {
-  cardGenerated: true,
-  cardPath: filename
-});
-
-return filename;
+  return { filename, token };
 }
 
-// POST: Generate Card for a student
-app.post('/api/generate-card/:id', async (req, res) => {
+// POST: Generate Entry Pass for a student (alias: /api/generate-card/:id)
+async function generatePassById(req, res) {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    const filename = await generateCardForStudent(student);
-    res.json({ success: true, cardPath: `/generated/${filename}` });
+    const { filename, token } = await generateEntryPassForStudent(student);
+    return res.json({
+      success: true,
+      passPath: `/generated/${filename}`,
+      token,
+      verifyUrl: buildVerificationUrl(token)
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
-});
+}
 
-// POST: Generate Cards for ALL students
+app.post('/api/generate-pass/:id', generatePassById);
+app.post('/api/generate-card/:id', generatePassById);
+
+// POST: Generate Entry Passes for ALL students
 app.post('/api/generate-all', async (req, res) => {
   try {
     const students = await Student.find();
@@ -424,66 +437,76 @@ app.post('/api/generate-all', async (req, res) => {
 
     for (const student of students) {
       try {
-        await generateCardForStudent(student);
-        results.push({ id: student._id, success: true });
+        await generateEntryPassForStudent(student);
+        results.push({ id: student._id, name: student.name, success: true });
       } catch (e) {
-        results.push({ id: student._id, success: false });
+        results.push({ id: student._id, name: student.name, success: false, error: e.message });
       }
     }
 
-    res.json({ success: true, results });
+    return res.json({ success: true, results });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
-// GET: Download single student card
-app.get('/api/download-card/:id', async (req, res) => {
+// GET: Download single entry pass (alias: /api/download-card/:id)
+async function downloadPassById(req, res) {
   try {
     const student = await Student.findById(req.params.id);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     let filename = student.cardPath;
     const hasFile = filename && fs.existsSync(path.join('generated', filename));
-    if (!hasFile) filename = await generateCardForStudent(student);
+    if (!hasFile) {
+      filename = (await generateEntryPassForStudent(student)).filename;
+    }
 
     const filePath = path.join('generated', filename);
     const pretty = sanitizeFileName(student.name || 'student');
-    return res.download(filePath, `${pretty}_card.png`);
+    return res.download(filePath, `${pretty}_entry-pass.png`);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-});
+}
 
-// GET: Download all cards as ZIP
-app.get('/api/download-all-cards', async (req, res) => {
+app.get('/api/download-pass/:id', downloadPassById);
+app.get('/api/download-card/:id', downloadPassById);
+
+// GET: Download all entry passes as ZIP (alias: /api/download-all-cards)
+async function downloadAllPasses(req, res) {
   try {
     const students = await Student.find();
     if (!students.length) return res.status(404).json({ error: 'No students found' });
 
     for (const student of students) {
       const fileExists = student.cardPath && fs.existsSync(path.join('generated', student.cardPath));
-      if (!fileExists) await generateCardForStudent(student);
+      if (!fileExists) await generateEntryPassForStudent(student);
     }
 
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename="all-student-cards.zip"');
+    res.setHeader('Content-Disposition', 'attachment; filename="all-entry-passes.zip"');
 
     const archive = archiver('zip', { zlib: { level: 9 } });
-    archive.on('error', err => { throw err; });
+    archive.on('error', err => {
+      throw err;
+    });
     archive.pipe(res);
 
     for (const student of students) {
       const absPath = path.join('generated', student.cardPath);
       const pretty = sanitizeFileName(student.name || 'student');
-      archive.file(absPath, { name: `${pretty}_${student._id}.png` });
+      archive.file(absPath, { name: `${pretty}_${student._id}_entry-pass.png` });
     }
 
     await archive.finalize();
   } catch (err) {
     if (!res.headersSent) res.status(500).json({ error: err.message });
   }
-});
+}
+
+app.get('/api/download-all-passes', downloadAllPasses);
+app.get('/api/download-all-cards', downloadAllPasses);
 
 // DELETE: Clear all students
 app.delete('/api/students', async (req, res) => {
@@ -495,7 +518,7 @@ app.delete('/api/students', async (req, res) => {
   }
 });
 
-// POST: Add single student + optional card generation
+// POST: Add single student + optional entry pass generation
 app.post('/api/student', async (req, res) => {
   try {
     const {
@@ -506,11 +529,19 @@ app.post('/api/student', async (req, res) => {
       email = '',
       phone = '',
       address = '',
-      generateCard = true
+      generatePass,
+      generateCard
     } = req.body || {};
 
-    if (!name || !schoolName) {
-      return res.status(400).json({ error: 'name and schoolName are required' });
+    const shouldGeneratePass =
+      typeof generatePass === 'boolean'
+        ? generatePass
+        : typeof generateCard === 'boolean'
+          ? generateCard
+          : true;
+
+    if (!name) {
+      return res.status(400).json({ error: 'name is required' });
     }
 
     const nEmail = normalizeEmail(email);
@@ -533,7 +564,7 @@ app.post('/api/student', async (req, res) => {
 
     const student = await Student.create({
       name: String(name).trim(),
-      schoolName: String(schoolName).trim(),
+      schoolName: String(schoolName || '').trim(),
       rollNo: String(rollNo).trim(),
       class: String(className).trim(),
       email: nEmail || undefined,
@@ -541,23 +572,28 @@ app.post('/api/student', async (req, res) => {
       address: String(address).trim()
     });
 
-    let cardPath = null;
+    let passPath = null;
+    let token = null;
     let warning = null;
-    if (generateCard) {
+
+    if (shouldGeneratePass) {
       try {
-        const filename = await generateCardForStudent(student);
-        cardPath = `/generated/${filename}`;
-      } catch (cardErr) {
-        warning = `Student saved, but card generation failed: ${cardErr.message}`;
-        console.error('Card generation failed for new student:', cardErr);
+        const result = await generateEntryPassForStudent(student);
+        passPath = `/generated/${result.filename}`;
+        token = result.token;
+      } catch (passErr) {
+        warning = `Student saved, but entry pass generation failed: ${passErr.message}`;
+        console.error('Entry pass generation failed for new student:', passErr);
       }
     }
 
     return res.status(201).json({
       success: true,
-      message: warning ? 'Student created, but card generation failed' : 'Student created successfully',
+      message: warning ? 'Student created, but entry pass generation failed' : 'Student created successfully',
       student,
-      cardPath,
+      passPath,
+      token,
+      verifyUrl: token ? buildVerificationUrl(token) : null,
       warning
     });
   } catch (err) {

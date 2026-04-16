@@ -3,355 +3,154 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student Details</title>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Verified Pass</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
-  --purple: #3B0B8F;
-  --blue: #1E3A8A;
-  --yellow: #FBBF24;
-  --yellow-dark: #F59E0B;
-  --gray-50: #F9FAFB;
-  --gray-100: #F3F4F6;
-  --gray-200: #E5E7EB;
-  --gray-600: #4B5563;
-  --gray-700: #374151;
-  --gray-900: #111827;
+  --bg: #0b0b0c;
+  --card: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.14);
+  --text: rgba(255, 255, 255, 0.94);
+  --muted: rgba(255, 255, 255, 0.7);
+  --ok: #22c55e;
+  --bad: #ef4444;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Geist', system-ui, sans-serif;
-  background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
   min-height: 100vh;
-  padding: 20px;
-  display: flex;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(900px 600px at 20% 10%, rgba(239, 68, 68, 0.24), transparent 50%),
+    radial-gradient(900px 700px at 80% 0%, rgba(99, 102, 241, 0.18), transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+.card {
+  width: min(100%, 520px);
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--card), rgba(255, 255, 255, 0.03));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.status {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-.container {
-  max-width: 500px;
-  width: 100%;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-}
-
-.header {
-  background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
-  padding: 40px 30px;
-  text-align: center;
-  position: relative;
-}
-
-.header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(90deg, var(--yellow) 0%, var(--yellow-dark) 100%);
-}
-
-.logo {
-  font-family: 'Georgia', serif;
-  font-size: 28px;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 5px;
-}
-
-.tagline {
-  font-family: 'Georgia', serif;
-  font-size: 14px;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 20px;
-}
-
-.event-title {
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--yellow);
-  letter-spacing: 1px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  margin-bottom: 18px;
 }
 
-.body {
-  padding: 35px 30px 40px;
+.status.ok {
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #bbf7d0;
+}
+
+.status.err {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+}
+
+.name {
+  font-size: clamp(32px, 8vw, 54px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .loading {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--gray-600);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  color: var(--muted);
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--gray-200);
-  border-top-color: var(--purple);
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: rgba(255, 255, 255, 0.82);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin: 0 auto 15px;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-
-.error {
-  text-align: center;
-  padding: 40px 20px;
-  color: #DC2626;
-}
-
-.error-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.section-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--gray-600);
-  margin-bottom: 15px;
-}
-
-.student-name {
-  font-size: 32px;
-  font-weight: 900;
-  color: var(--gray-900);
-  margin-bottom: 10px;
-  line-height: 1.2;
-}
-
-.school-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--gray-700);
-  margin-bottom: 30px;
-}
-
-.divider {
-  height: 2px;
-  background: linear-gradient(90deg, var(--yellow), var(--yellow-dark));
-  margin: 25px 0;
-}
-
-.details-grid {
-  display: grid;
-  gap: 18px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 15px;
-  background: var(--gray-50);
-  border-radius: 10px;
-  border: 1px solid var(--gray-200);
-}
-
-.detail-icon {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(135deg, var(--purple), var(--blue));
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 16px;
-}
-
-.detail-content {
-  flex: 1;
-}
-
-.detail-label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--gray-600);
-  margin-bottom: 4px;
-}
-
-.detail-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--gray-900);
-  word-break: break-word;
-}
-
-.footer {
-  padding: 20px 30px;
-  background: var(--gray-50);
-  border-top: 1px solid var(--gray-200);
-  text-align: center;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, var(--purple), var(--blue));
-  color: white;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.verified-icon {
-  font-size: 14px;
-}
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="header">
-    <div class="logo">Graphic Era</div>
-    <div class="tagline">Transforming dreams into reality</div>
-    <div class="event-title">Mega Career<br>Counselling</div>
+<main class="card">
+  <div id="content" class="loading">
+    <div class="spinner"></div>
+    <div>Checking pass...</div>
   </div>
-
-  <div class="body" id="content">
-    <div class="loading">
-      <div class="spinner"></div>
-      <div>Loading participant details...</div>
-    </div>
-  </div>
-</div>
+</main>
 
 <script>
 const params = new URLSearchParams(window.location.search);
-const studentId = params.get('id');
+const token = params.get('token');
 
-if (!studentId) {
-  showError('No student ID provided');
+if (token) {
+  loadVerified(token);
 } else {
-  loadStudent(studentId);
+  showState(false, '', 'Missing verification token.');
 }
 
-async function loadStudent(id) {
+async function loadVerified(t) {
   try {
-    const res = await fetch(`/api/student/${id}`);
-    if (!res.ok) throw new Error('Student not found');
-    const student = await res.json();
-    renderStudent(student);
+    const res = await fetch(`/api/verify?token=${encodeURIComponent(t)}`);
+    const data = await res.json();
+    if (!res.ok || !data.verified || !data.student?.name) {
+      throw new Error(data.error || 'Verification failed');
+    }
+
+    showState(true, data.student.name, 'Verified entry pass');
   } catch (err) {
-    showError(err.message || 'Failed to load student details');
+    showState(false, '', err.message || 'Invalid or expired pass');
   }
 }
 
-function renderStudent(student) {
-  const details = [];
-
-  if (student.rollNo) {
-    details.push({
-      icon: '🎫',
-      label: 'Roll Number',
-      value: student.rollNo
-    });
-  }
-
-  if (student.class) {
-    details.push({
-      icon: '📚',
-      label: 'Class',
-      value: student.class
-    });
-  }
-
-  if (student.email) {
-    details.push({
-      icon: '✉️',
-      label: 'Email',
-      value: student.email
-    });
-  }
-
-  if (student.phone) {
-    details.push({
-      icon: '📱',
-      label: 'Phone',
-      value: student.phone
-    });
-  }
-
-  if (student.address) {
-    details.push({
-      icon: '📍',
-      label: 'Address',
-      value: student.address
-    });
-  }
-
-  details.push({
-    icon: '🆔',
-    label: 'Student ID',
-    value: student._id
-  });
-
-  document.getElementById('content').innerHTML = `
-    <div class="section-title">Participant Details</div>
-    <div class="student-name">${escapeHtml(student.name)}</div>
-    <div class="school-name">${escapeHtml(student.schoolName)}</div>
-    
-    ${details.length > 0 ? `
-      <div class="divider"></div>
-      <div class="details-grid">
-        ${details.map(d => `
-          <div class="detail-item">
-            <div class="detail-icon">${d.icon}</div>
-            <div class="detail-content">
-              <div class="detail-label">${d.label}</div>
-              <div class="detail-value">${escapeHtml(d.value)}</div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    ` : ''}
-  `;
-
-  // Add footer with verified badge
-  const container = document.querySelector('.container');
-  const footer = document.createElement('div');
-  footer.className = 'footer';
-  footer.innerHTML = `
-    <div class="badge">
-      <span class="verified-icon">✓</span>
-      <span>Verified Participant</span>
-    </div>
-  `;
-  container.appendChild(footer);
-}
-
-function showError(message) {
-  document.getElementById('content').innerHTML = `
-    <div class="error">
-      <div class="error-icon">⚠️</div>
-      <div style="font-size:18px;font-weight:600;margin-bottom:8px">Error</div>
-      <div style="font-size:14px">${escapeHtml(message)}</div>
-    </div>
-  `;
+function showState(verified, name, note) {
+  document.getElementById('content').innerHTML = verified
+    ? `
+      <div class="status ok">Verified</div>
+      <div class="name">${escapeHtml(name)}</div>
+      <div class="note">${escapeHtml(note)}</div>
+    `
+    : `
+      <div class="status err">Not Verified</div>
+      <div class="note">${escapeHtml(note)}</div>
+    `;
 }
 
 function escapeHtml(text) {
   const div = document.createElement('div');
-  div.textContent = text;
+  div.textContent = String(text ?? '');
   return div.innerHTML;
 }
 </script>

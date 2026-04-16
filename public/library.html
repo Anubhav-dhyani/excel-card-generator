@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pass Library</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0b0c;
+      --panel: rgba(255, 255, 255, 0.06);
+      --text: rgba(255, 255, 255, 0.9);
+      --muted: rgba(255, 255, 255, 0.65);
+      --border: rgba(255, 255, 255, 0.14);
+      --accent: rgba(239, 68, 68, 0.25);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Geist', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 800px at 20% 10%, rgba(239, 68, 68, 0.25), transparent 50%),
+        radial-gradient(1000px 700px at 80% 0%, rgba(168, 85, 247, 0.14), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 16px 30px;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .sub {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 650;
+      color: rgba(255,255,255,0.92);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), rgba(255, 255, 255, 0.03));
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .tools {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--text);
+      outline: none;
+      font-size: 14px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .list {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 62vh;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .item {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: transparent;
+      color: var(--text);
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .item:hover { background: rgba(255,255,255,0.06); }
+    .item.active { background: var(--accent); }
+
+    .pager {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .preview {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preview img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #111;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    code {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px;
+      padding: 2px 7px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1 class="title">Pass Library</h1>
+        <p class="sub">Designed for large volume: search, paginate, preview, and manage passes.</p>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/index.html">Back to Generator</a>
+        <button class="btn" id="refreshBtn" type="button">Refresh</button>
+        <button class="btn" id="clearAllBtn" type="button">Clear All List</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <section class="card">
+        <div class="tools">
+          <input id="searchInput" placeholder="Search by student name..." />
+          <div class="row">
+            <div class="sub" id="countInfo">Loading...</div>
+            <div class="sub" id="pageInfo"></div>
+          </div>
+        </div>
+        <div class="list" id="list"></div>
+        <div class="pager">
+          <button class="btn" id="prevBtn" type="button">Previous</button>
+          <button class="btn" id="nextBtn" type="button">Next</button>
+        </div>
+      </section>
+
+      <section class="card preview" id="preview">
+        <p class="sub">Select a student to see pass details.</p>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const listEl = $('list');
+    const previewEl = $('preview');
+    const searchInput = $('searchInput');
+    const countInfo = $('countInfo');
+    const pageInfo = $('pageInfo');
+    const prevBtn = $('prevBtn');
+    const nextBtn = $('nextBtn');
+
+    let students = [];
+    let filtered = [];
+    let selectedId = null;
+    let page = 1;
+    const pageSize = 50;
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text ?? '');
+      return div.innerHTML;
+    }
+
+    function applyFilter() {
+      const q = (searchInput.value || '').trim().toLowerCase();
+      filtered = q
+        ? students.filter((s) => String(s.name || '').toLowerCase().includes(q))
+        : [...students];
+      if (page > getTotalPages()) page = Math.max(1, getTotalPages());
+    }
+
+    function getTotalPages() {
+      return Math.max(1, Math.ceil(filtered.length / pageSize));
+    }
+
+    function getPageItems() {
+      const start = (page - 1) * pageSize;
+      return filtered.slice(start, start + pageSize);
+    }
+
+    function renderPreview(student) {
+      if (!student) {
+        previewEl.innerHTML = '<p class="sub">Select a student to see pass details.</p>';
+        return;
+      }
+
+      const passImg = student.cardPath
+        ? `/generated/${encodeURIComponent(student.cardPath)}?t=${Date.now()}`
+        : '';
+      const verifyUrl = student.passToken
+        ? `/student.html?token=${encodeURIComponent(student.passToken)}`
+        : '';
+
+      previewEl.innerHTML = `
+        <h3 style="margin:0;">${escapeHtml(student.name || 'Unnamed')}</h3>
+        <p class="sub">Student ID: <code>${escapeHtml(student._id || '')}</code></p>
+        ${passImg ? `<img src="${passImg}" alt="Pass image for ${escapeHtml(student.name || 'student')}" />` : '<p class="sub">Pass not generated yet.</p>'}
+        <div class="actions">
+          <button class="btn" id="generateBtn" type="button">Generate / Refresh Pass</button>
+          <a class="btn" href="/api/download-pass/${encodeURIComponent(student._id)}">Download Pass</a>
+          ${verifyUrl ? `<a class="btn" href="${verifyUrl}" target="_blank" rel="noreferrer">Open Verified</a>` : ''}
+        </div>
+      `;
+
+      const generateBtn = $('generateBtn');
+      if (generateBtn) {
+        generateBtn.addEventListener('click', async () => {
+          generateBtn.disabled = true;
+          try {
+            const res = await fetch(`/api/generate-pass/${encodeURIComponent(student._id)}`, { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || 'Failed to generate');
+            await loadStudents(student._id);
+          } catch (err) {
+            previewEl.insertAdjacentHTML('beforeend', `<p class="sub">${escapeHtml(err.message || 'Failed to generate')}</p>`);
+          } finally {
+            generateBtn.disabled = false;
+          }
+        });
+      }
+    }
+
+    function renderList() {
+      const items = getPageItems();
+      countInfo.textContent = `${filtered.length} result(s)`;
+      pageInfo.textContent = `Page ${page} / ${getTotalPages()}`;
+      prevBtn.disabled = page <= 1;
+      nextBtn.disabled = page >= getTotalPages();
+
+      if (!items.length) {
+        listEl.innerHTML = '<div class="sub" style="padding:10px 12px;">No passes found.</div>';
+        renderPreview(null);
+        return;
+      }
+
+      listEl.innerHTML = items.map((s) => `
+        <button class="item ${s._id === selectedId ? 'active' : ''}" data-id="${escapeHtml(s._id)}">
+          ${escapeHtml(s.name || 'Unnamed')}
+        </button>
+      `).join('');
+
+      listEl.querySelectorAll('.item').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedId = btn.getAttribute('data-id');
+          renderList();
+          renderPreview(filtered.find((s) => s._id === selectedId) || null);
+        });
+      });
+
+      const selected = filtered.find((s) => s._id === selectedId) || items[0];
+      selectedId = selected?._id || null;
+      renderPreview(selected || null);
+      listEl.querySelector(`[data-id="${selectedId}"]`)?.classList.add('active');
+    }
+
+    async function loadStudents(preferId = null) {
+      const res = await fetch('/api/students');
+      const data = await res.json();
+      students = Array.isArray(data) ? data : [];
+      if (preferId) selectedId = preferId;
+      applyFilter();
+      renderList();
+    }
+
+    searchInput.addEventListener('input', () => {
+      page = 1;
+      applyFilter();
+      renderList();
+    });
+
+    prevBtn.addEventListener('click', () => {
+      if (page > 1) {
+        page -= 1;
+        renderList();
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (page < getTotalPages()) {
+        page += 1;
+        renderList();
+      }
+    });
+
+    $('refreshBtn').addEventListener('click', async () => {
+      await loadStudents(selectedId);
+    });
+
+    $('clearAllBtn').addEventListener('click', async () => {
+      const ok = window.confirm('Delete all students from list?');
+      if (!ok) return;
+      const res = await fetch('/api/students', { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Could not clear list.');
+        return;
+      }
+      selectedId = null;
+      page = 1;
+      await loadStudents();
+    });
+
+    loadStudents().catch(() => {
+      listEl.innerHTML = '<div class="sub" style="padding:10px 12px;">Could not load students.</div>';
+    });
+  </script>
+</body>
+</html>
